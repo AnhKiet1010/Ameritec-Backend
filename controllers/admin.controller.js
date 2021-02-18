@@ -2,7 +2,6 @@ const User = require("../models/user.model");
 const Tree = require("../models/tree.model");
 const Transaction = require("../models/transaction.model");
 const jwt = require("jsonwebtoken");
-const Admin = require("../models/admin.model");
 
 const countTotalChildMember = async (subTreeIdList) => {
   var count = subTreeIdList.length;
@@ -45,48 +44,6 @@ exports.postLogin = async (req, res) => {
         ],
       });
     }
-    // authenticate
-    // bcrypt.compare(password, user.hashed_password, function (err, result) {
-    //   // result == true
-    //   if (!result || err) {
-    //     return res.json({
-    //       success: false,
-    //       errors: [
-    //         {
-    //           label: "password",
-    //           err_message: "Mật khẩu không đúng. Vui lòng thử lại",
-    //         },
-    //       ],
-    //     });
-    //   }
-    //   // generate a token and send to client
-    //   const token = jwt.sign(
-    //     {
-    //       _id: user._id,
-    //     },
-    //     process.env.JWT_SECRET,
-    //     {
-    //       expiresIn: "1d",
-    //     }
-    //   );
-
-    //   return res.json({
-    //     success: true,
-    //     token,
-    //     user: {
-    //       avatar: user.avatar,
-    //       full_name: user.full_name,
-    //       amount: user.amount,
-    //       level: user.level,
-    //       point: user.point,
-    //       role: user.role,
-    //       _id: user._id,
-    //       phone: user.phone,
-    //     },
-    //   });
-    // });
-
-    // result == true
     if (password !== user.password) {
       return res.json({
         success: false,

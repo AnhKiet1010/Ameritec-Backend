@@ -38,7 +38,7 @@ exports.tranController = async (req, res) => {
   );
 };
 
-exports.registerController = async (req, res) => {
+exports.createAccountController = async (req, res) => {
   const { values, group, buy_package } = req.body;
   const { full_name, email, phone, invite_code, password } = values;
 
@@ -79,6 +79,82 @@ exports.registerController = async (req, res) => {
         password,
         buy_package,
         group,
+        phone,
+      },
+      process.env.JWT_ACCOUNT_ACTIVATION,
+      { expiresIn: "15m" }
+    );
+
+    const oneYearFromNow = new Date();
+    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+    const newTransaction = new Transaction({
+      status: "pending",
+      payment_method: "",
+      token,
+      created_time: new Date(),
+      created_by: full_name,
+      email,
+      phone,
+      expired_time: oneYearFromNow,
+      buy_package
+    });
+
+    await newTransaction.save(function (err) {
+      if (err) {
+        console.log("fail to save transaction!");
+        res.json({
+          success: false,
+          errors: [
+            {
+              label: "transaction",
+              err_message: "Lỗi khi tạo giao dịch.Vui lòng thử lại sau",
+            },
+          ],
+        });
+      } else {
+        console.log("save transaction done!");
+        res.json({
+          success: true,
+          message: `🎉 Mời bạn tiến hành thanh toán`,
+          parentEmail: email,
+        });
+      }
+    });
+  }
+};
+
+exports.registerController = async (req, res) => {
+  const { values, buy_package } = req.body;
+  const { full_name, email, phone, password } = values;
+
+  const user_repeat_email = await User.findOne({ email }).exec();
+  const valid_phone = await User.findOne({ phone }).exec();
+
+  await Transaction.deleteMany({ email, status: "pending" }).exec();
+
+  const errors = [];
+
+  if (user_repeat_email) {
+    errors.push({ label: "email", err_message: "Email này đã được sử dụng" });
+  }
+
+  if (valid_phone) {
+    errors.push({
+      label: "phone",
+      err_message: "Số điện thoại đã được sử dụng.Vui lòng chọn số khác",
+    });
+  }
+
+  if (errors.length > 0) {
+    res.json({ success: false, errors });
+  } else {
+    const token = jwt.sign(
+      {
+        full_name,
+        email,
+        password,
+        buy_package,
         phone,
       },
       process.env.JWT_ACCOUNT_ACTIVATION,
@@ -558,7 +634,8 @@ exports.loginController = (req, res) => {
   }).exec((err, user) => {
     if (err || !user) {
       return res.json({
-        success: false,
+        status: 401,
+        message: "Thông tin đăng nhập không đúng! Vui lòng thử lại",
         errors: [
           {
             label: "acc",
@@ -569,21 +646,13 @@ exports.loginController = (req, res) => {
       });
     }
     // authenticate
-    bcrypt.compare(password, user.hashed_password, function (err, result) {
-      // result == true
-      if (!result || err) {
-        return res.json({
-          success: false,
-          errors: [
-            {
-              label: "password",
-              err_message: "Mật khẩu không đúng. Vui lòng thử lại",
-            },
-          ],
-        });
-      }
+    // bcrypt.compare(password, user.password, function (err, result) {
+    //   // result == true
+    //   if (!result || err) {
+    //     return res.status(401);
+    //   }
       // generate a token and send to client
-      const token = jwt.sign(
+      const access_token = jwt.sign(
         {
           _id: user._id,
         },
@@ -593,21 +662,53 @@ exports.loginController = (req, res) => {
         }
       );
 
+    //   return res.json({
+    //     success: true,
+    //     token,
+    //     user: {
+    //       avatar: user.avatar,
+    //       full_name: user.full_name,
+    //       amount: user.amount,
+    //       level: user.level,
+    //       point: user.point,
+    //       role: user.role,
+    //       _id: user._id,
+    //       phone: user.phone,
+    //     },
+    //   });
+    // });
+    if(password !== user.password) {
       return res.json({
-        success: true,
-        token,
-        user: {
-          avatar: user.avatar,
-          full_name: user.full_name,
-          amount: user.amount,
-          level: user.level,
-          point: user.point,
-          role: user.role,
-          _id: user._id,
-          phone: user.phone,
-        },
+        status: 401,
+        message: "Thông tin đăng nhập không đúng! Vui lòng thử lại",
+        errors: [
+          {
+            label: "password",
+            err_message:
+              "Mật khẩu không đúng.Vui lòng thử lại",
+          },
+        ],
       });
-    });
+    } else {
+      return res.json({
+        status: 200,
+        data: {
+          access_token,
+          user: {
+            id: user._id,
+            avatar: user.avatar,
+            full_name: user.full_name,
+            amount: user.amount,
+            level: user.level,
+            point: user.point,
+            role: user.role,
+            phone: user.phone,
+          },
+        },
+        message: "Đăng nhập thành công",
+        errors: []
+      })
+    }
   });
 };
 
@@ -1238,115 +1339,6 @@ exports.addDemoData = async (req, res) => {
     });
   });
 };
-
-exports.addAgency = async (req,res) => {
-  const {
-    full_name,
-    email,
-    password,
-    buy_package,
-    phone,
-    payment_method,
-    created_by,
-  } = req.query;
-
-  bcrypt.genSalt(saltRounds, function (err, salt) {
-    bcrypt.hash(password, salt, async function (err, hash) {
-      if (err) {
-        console.log(err);
-        return res.json(err);
-      } else {
-
-        const listAva = [
-          "similiquealiasoccaecati",
-          "molestiaeimpeditdolor",
-          "voluptatesabinventore",
-          "quinemoitaque",
-          "ametenimomnis",
-          "aliquamprovidenthic",
-          "recusandaetemporeaut",
-          "suntveritatisconsequatur",
-          "expeditaaccusamustotam",
-          "doloresutqui",
-        ];
-        const ranNum = Math.floor(Math.random() * 10);
-        const url = `${listAva[ranNum]}.png`;
-        const user = new User({
-          full_name,
-          email,
-          hashed_password: hash,
-          complete_profile_level: 1,
-          avatar: `https://robohash.org/${url}?size=100x100&set=set1`,
-          phone,
-          buy_package,
-          parentId: "",
-          created_time: new Date(),
-        });
-
-        const oneYearFromNow = new Date();
-        oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-
-        const transaction = new Transaction({
-          status: "success",
-          approved_by: "admin",
-          payment_method,
-          token: "",
-          created_time: new Date(),
-          created_by,
-          email,
-          phone,
-          approved_time: "",
-          expired_time: oneYearFromNow,
-          buy_package
-        });
-
-        await transaction.save(function (err) {
-          if (err) {
-            console.log("error when save transaction", err);
-          }
-        });
-
-        await user.save(function (err) {
-          if (err) {
-            console.log(err);
-            return res.json({
-              success: false,
-              errors: [
-                {
-                  label: "save user error",
-                  err_message: "save user error",
-                },
-              ],
-            });
-          } else {
-            const newTree = new Tree({
-              parent: user._id,
-              buy_package,
-            });
-
-            newTree.save(async function (err) {
-              if (err) {
-                res.json({
-                  success: false,
-                  errors: [
-                    {
-                      label: "save tree error",
-                      err_message: "Lỗi khi lưu cây",
-                    },
-                  ],
-                });
-              }
-            });
-          }
-        });
-        res.json({
-          success: true,
-          message: 'Saved Agency!!!'
-        })
-      }
-    });
-  });
-}
 
 const returnCommission = async (receive_mem, amount, join_mem, payment_method, qualified) => {
   const commission = new Commission({

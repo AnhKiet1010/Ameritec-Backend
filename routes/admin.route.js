@@ -13,7 +13,7 @@ const {
 } = require('../controllers/admin.controller');
 
 router.get('/dashboard', checkAdmin, getDashboard);
-router.get('/getPendingList',checkAdmin, getPendingList);
+router.get('/getPendingList', getPendingList);
 router.get('/getFolderView',checkAdmin, getFolderView);
 router.post('/login', postLogin);
 router.post('/edit-tree',checkAdminPost, editTree);
