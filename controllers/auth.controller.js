@@ -97,7 +97,7 @@ exports.createAccountController = async (req, res) => {
       email,
       phone,
       expired_time: oneYearFromNow,
-      buy_package
+      buy_package,
     });
 
     await newTransaction.save(function (err) {
@@ -125,8 +125,22 @@ exports.createAccountController = async (req, res) => {
 };
 
 exports.registerController = async (req, res) => {
-  const { values, buy_package } = req.body;
-  const { full_name, email, phone, password } = values;
+  const {
+    full_name,
+    email,
+    password,
+    phone,
+    be_member,
+    id_code,
+    issued_by,
+    bank_account,
+    bank_name,
+    iden_type,
+    tax_code,
+    birthday,
+    gender,
+    buy_package,
+  } = req.body;
 
   const user_repeat_email = await User.findOne({ email }).exec();
   const valid_phone = await User.findOne({ phone }).exec();
@@ -146,8 +160,35 @@ exports.registerController = async (req, res) => {
     });
   }
 
+  if (be_member) {
+    const user_repeat_id_code = await User.findOne({ id_code }).exec();
+    const user_repeat_bank_account = await User.findOne({
+      bank_account,
+    }).exec();
+    const user_repeat_tax_code = await User.findOne({ tax_code }).exec();
+
+    if (user_repeat_id_code) {
+      errors.push({
+        label: "id_code",
+        err_message: "Số CMND đã được sử dụng",
+      });
+    }
+    if (user_repeat_bank_account) {
+      errors.push({
+        label: "bank_account",
+        err_message: "Số Tài Khoản này đã được sử dụng",
+      });
+    }
+    if (user_repeat_tax_code) {
+      errors.push({
+        label: "tax_code",
+        err_message: "Mã Số Thuế này đã được sử dụng",
+      });
+    }
+  }
+
   if (errors.length > 0) {
-    res.json({ success: false, errors });
+    res.json({ status: 401, errors, message: "Thông tin bị trùng! Xin vui lòng điền lại" });
   } else {
     const token = jwt.sign(
       {
@@ -173,7 +214,7 @@ exports.registerController = async (req, res) => {
       email,
       phone,
       expired_time: oneYearFromNow,
-      buy_package
+      buy_package,
     });
 
     await newTransaction.save(function (err) {
@@ -191,9 +232,9 @@ exports.registerController = async (req, res) => {
       } else {
         console.log("save transaction done!");
         res.json({
-          success: true,
-          message: `🎉 Mời bạn tiến hành thanh toán`,
-          parentEmail: email,
+          status: 200,
+          message: "",
+          errors,
         });
       }
     });
@@ -304,9 +345,14 @@ exports.activationController = (req, res) => {
                         const parentName = userOfPhone.full_name;
 
                         const oneYearFromNow = new Date();
-                        oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+                        oneYearFromNow.setFullYear(
+                          oneYearFromNow.getFullYear() + 1
+                        );
 
-                        await Transaction.findOneAndUpdate({email}, {status: 'success', expired_time: oneYearFromNow}).exec();
+                        await Transaction.findOneAndUpdate(
+                          { email },
+                          { status: "success", expired_time: oneYearFromNow }
+                        ).exec();
 
                         await User.findOneAndUpdate(
                           { phone: invite_code },
@@ -317,9 +363,14 @@ exports.activationController = (req, res) => {
                                 : userOfPhone.amount + 160,
                           }
                         ).exec();
-        
+
                         await updateParent(userOfPhone._id, buy_package);
-                        await returnCommission(userOfPhone._id, process.env.COMMISSION, parentName, "Chuyển khoản");
+                        await returnCommission(
+                          userOfPhone._id,
+                          process.env.COMMISSION,
+                          parentName,
+                          "Chuyển khoản"
+                        );
 
                         if (group === "1") {
                           Tree.findOneAndUpdate(
@@ -651,41 +702,24 @@ exports.loginController = (req, res) => {
     //   if (!result || err) {
     //     return res.status(401);
     //   }
-      // generate a token and send to client
-      const access_token = jwt.sign(
-        {
-          _id: user._id,
-        },
-        process.env.JWT_SECRET,
-        {
-          expiresIn: "1d",
-        }
-      );
-
-    //   return res.json({
-    //     success: true,
-    //     token,
-    //     user: {
-    //       avatar: user.avatar,
-    //       full_name: user.full_name,
-    //       amount: user.amount,
-    //       level: user.level,
-    //       point: user.point,
-    //       role: user.role,
-    //       _id: user._id,
-    //       phone: user.phone,
-    //     },
-    //   });
-    // });
-    if(password !== user.password) {
+    // generate a token and send to client
+    const access_token = jwt.sign(
+      {
+        _id: user._id,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1d",
+      }
+    );
+    if (password !== user.password) {
       return res.json({
         status: 401,
         message: "Thông tin đăng nhập không đúng! Vui lòng thử lại",
         errors: [
           {
             label: "password",
-            err_message:
-              "Mật khẩu không đúng.Vui lòng thử lại",
+            err_message: "Mật khẩu không đúng.Vui lòng thử lại",
           },
         ],
       });
@@ -706,8 +740,8 @@ exports.loginController = (req, res) => {
           },
         },
         message: "Đăng nhập thành công",
-        errors: []
-      })
+        errors: [],
+      });
     }
   });
 };
@@ -779,8 +813,10 @@ exports.userInfoController = (req, res) => {
               ],
             });
           } else {
-
-            await Commission.updateMany({receive_mem: _id}, {qualified : true}).exec();
+            await Commission.updateMany(
+              { receive_mem: _id },
+              { qualified: true }
+            ).exec();
 
             res.json({
               success: true,
@@ -1174,7 +1210,7 @@ exports.addDemoData = async (req, res) => {
           phone,
           approved_time: "",
           expired_time: oneYearFromNow,
-          buy_package
+          buy_package,
         });
 
         await transaction.save(function (err) {
@@ -1332,53 +1368,65 @@ exports.addDemoData = async (req, res) => {
         );
 
         await updateParent(userOfPhone._id, buy_package);
-        const qualified = userOfPhone.complete_profile_level !== 1 ? true : false;
-        await returnCommission(userOfPhone._id, process.env.COMMISSION, full_name, "Chuyển khoản",qualified);
+        const qualified =
+          userOfPhone.complete_profile_level !== 1 ? true : false;
+        await returnCommission(
+          userOfPhone._id,
+          process.env.COMMISSION,
+          full_name,
+          "Chuyển khoản",
+          qualified
+        );
         // await saveExtension()
       }
     });
   });
 };
 
-const returnCommission = async (receive_mem, amount, join_mem, payment_method, qualified) => {
+const returnCommission = async (
+  receive_mem,
+  amount,
+  join_mem,
+  payment_method,
+  qualified
+) => {
   const commission = new Commission({
-    receive_mem, 
-    amount, 
+    receive_mem,
+    amount,
     join_mem,
     created_time: new Date(),
     payment_method,
-    active_admin: 'Admin',
-    status: 'pending',
-    qualified
+    active_admin: "Admin",
+    status: "pending",
+    qualified,
   });
 
   await commission.save(function (err) {
-    if(err) {
-      console.log("error add commission", err)
+    if (err) {
+      console.log("error add commission", err);
     } else {
       console.log("saved commission");
     }
-  })
-}
+  });
+};
 
-const saveExtension = async (parent, amount,payment_method) => {
-
+const saveExtension = async (parent, amount, payment_method) => {
   var oneYearFromNow = new Date();
-oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1)
+  oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
 
   const extension = new Extension({
-    parent, 
-    amount, 
+    parent,
+    amount,
     created_time: new Date(),
     expired_time: oneYearFromNow,
-    payment_method
+    payment_method,
   });
 
   await extension.save(function (err) {
-    if(err) {
-      console.log("error add extension", err)
+    if (err) {
+      console.log("error add extension", err);
     } else {
       console.log("saved extension");
     }
-  })
-}
+  });
+};
