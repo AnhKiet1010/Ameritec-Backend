@@ -21,17 +21,15 @@ exports.tranController = async (req, res) => {
     function (err) {
       if (err) {
         res.json({
-          success: false,
-          errors: [
-            {
-              label: "transaction",
-              err_message: "Lỗi khi cập nhật giao dịch.Vui lòng thử lại sau",
-            },
-          ],
+          status: 401,
+          message: "Lỗi khi cập nhật giao dịch.Vui lòng thử lại sau",
+          errors: [],
         });
       } else {
         res.json({
-          success: true,
+          status: 200,
+          message: "",
+          errors: []
         });
       }
     }
@@ -125,13 +123,16 @@ exports.createAccountController = async (req, res) => {
 };
 
 exports.registerController = async (req, res) => {
+  console.log('result', req.body);
   const {
     full_name,
     email,
     password,
+    confirm_password,
+    accept_confirm,
     phone,
-    be_member,
     id_code,
+    be_member,
     issued_by,
     bank_account,
     bank_name,
@@ -139,7 +140,10 @@ exports.registerController = async (req, res) => {
     tax_code,
     birthday,
     gender,
-    buy_package,
+    invite_code,
+    donate_sales_id,
+    donate_money_id,
+    groupNumber
   } = req.body;
 
   const user_repeat_email = await User.findOne({ email }).exec();
@@ -187,64 +191,73 @@ exports.registerController = async (req, res) => {
     }
   }
 
-  if (errors.length > 0) {
-    res.json({ status: 401, errors, message: "Thông tin bị trùng! Xin vui lòng điền lại" });
-  } else {
-    const token = jwt.sign(
-      {
-        full_name,
-        email,
-        password,
-        buy_package,
-        phone,
-      },
-      process.env.JWT_ACCOUNT_ACTIVATION,
-      { expiresIn: "15m" }
-    );
+  // if (errors.length > 0) {
+  //   res.json({ status: 401, errors, message: "Thông tin bị trùng! Xin vui lòng điền lại" });
+  // } else {
+  //   const token = jwt.sign(
+  //     {
+  //       full_name,
+  //       email,
+  //       password,
+  //       phone,
+  //       be_member,
+  //       id_code,
+  //       issued_by,
+  //       bank_account,
+  //       bank_name,
+  //       iden_type,
+  //       tax_code,
+  //       birthday,
+  //       gender,
+  //       buy_package,
+  //     },
+  //     process.env.JWT_ACCOUNT_ACTIVATION,
+  //     { expiresIn: "15m" }
+  //   );
 
-    const oneYearFromNow = new Date();
-    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+  //   const oneYearFromNow = new Date();
+  //   oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
 
-    const newTransaction = new Transaction({
-      status: "pending",
-      payment_method: "",
-      token,
-      created_time: new Date(),
-      created_by: full_name,
-      email,
-      phone,
-      expired_time: oneYearFromNow,
-      buy_package,
-    });
+  //   const newTransaction = new Transaction({
+  //     status: "pending",
+  //     payment_method: "",
+  //     token,
+  //     created_time: new Date(),
+  //     created_by: full_name,
+  //     email,
+  //     phone,
+  //     expired_time: oneYearFromNow,
+  //     buy_package,
+  //   });
 
-    await newTransaction.save(function (err) {
-      if (err) {
-        console.log("fail to save transaction!");
-        res.json({
-          success: false,
-          errors: [
-            {
-              label: "transaction",
-              err_message: "Lỗi khi tạo giao dịch.Vui lòng thử lại sau",
-            },
-          ],
-        });
-      } else {
-        console.log("save transaction done!");
-        res.json({
-          status: 200,
-          message: "",
-          errors,
-        });
-      }
-    });
-  }
+  //   await newTransaction.save(function (err) {
+  //     if (err) {
+  //       console.log("fail to save transaction!");
+  //       res.json({
+  //         status: 200,
+  //         message: "fail to save transaction!",
+  //         errors: [
+  //           {
+  //             label: "transaction",
+  //             err_message: "Lỗi khi tạo giao dịch.Vui lòng thử lại sau",
+  //           },
+  //         ],
+  //       });
+  //     } else {
+  //       console.log("save transaction done!");
+  //       res.json({
+  //         status: 200,
+  //         message: "",
+  //         data: {email},
+  //         errors,
+  //       });
+  //     }
+  //   });
+  // }
 };
 
 exports.activationController = (req, res) => {
-  const { values } = req.body;
-
-  const { token } = values;
+  const { token } = req.body;
 
   if (token) {
     jwt.verify(
@@ -254,23 +267,26 @@ exports.activationController = (req, res) => {
         if (err) {
           console.log("Activation error");
           res.json({
-            success: false,
-            errors: [
-              {
-                label: "activation_error",
-                err_message: "Đường dẫn đã hết hạn.Vui lòng đăng ký lại",
-              },
-            ],
+            status: 401,
+            message: "Đường dẫn đã hết hạn.Vui lòng đăng ký lại",
+            errors: [],
           });
         } else {
           const {
             full_name,
             email,
-            invite_code,
             password,
-            buy_package,
-            group,
             phone,
+            be_member,
+            id_code,
+            issued_by,
+            bank_account,
+            bank_name,
+            iden_type,
+            tax_code,
+            birthday,
+            gender,
+            buy_package,
           } = jwt.decode(token);
 
           bcrypt.genSalt(saltRounds, function (err, salt) {
@@ -300,7 +316,7 @@ exports.activationController = (req, res) => {
                 const user = new User({
                   full_name,
                   email,
-                  hashed_password: hash,
+                  password: hash,
                   complete_profile_level: 1,
                   status: "success",
                   avatar: `https://robohash.org/${url}?size=100x100&set=set1`,

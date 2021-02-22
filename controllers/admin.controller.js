@@ -155,42 +155,16 @@ exports.getDashboard = async (req, res) => {
 };
 
 exports.getPendingList = async (req, res) => {
-  const { token, viewType } = req.query;
+  const listTrans = await Transaction.find({ status: "pending" }).sort().exec();
 
-  if (token) {
-    jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
-      if (err) {
-        console.log("token error");
-        res.json({
-          success: false,
-          errors: [
-            {
-              label: "token_error",
-              err_message: "Phiên đăng nhập hết hạn hoặc không đúng",
-            },
-          ],
-        });
-      } else {
-        const { _id } = jwt.decode(token);
-        const user = await User.findOne({ _id }).exec();
-
-        const countPersonPackages = await countTotalPersonPackage(_id);
-        const countBusinessPackages = await countTotalBusinessPackage(_id);
-
-        const listTrans = await Transaction.find({ status: "pending" })
-          .sort()
-          .exec();
-
-        res.json({
-          success: true,
-          countPersonPackages,
-          countBusinessPackages,
-          listTrans,
-          user,
-        });
-      }
-    });
-  }
+  res.json({
+    status: 200,
+    data: {
+      listTrans,
+    },
+    message: "",
+    errors: [],
+  });
 };
 
 const getListChildId = async (id) => {
@@ -694,47 +668,47 @@ exports.changeTree = async (req, res) => {
     }
   } else if (user1.parentId !== "" && user2.parentId === "") {
     const tree = await Tree.findOne({ parent: user1.parentId }).exec();
-      if (tree) {
-        const arrGroup11 = tree.group1;
-        const arrGroup12 = tree.group2;
-        const arrGroup13 = tree.group3;
+    if (tree) {
+      const arrGroup11 = tree.group1;
+      const arrGroup12 = tree.group2;
+      const arrGroup13 = tree.group3;
 
-        if (user1.groupNumber === "1") {
-          var i = arrGroup11.indexOf(user1._id);
-          if (i > -1) {
-            arrGroup11[i] = user2._id;
-          }
-          await Tree.findOneAndUpdate(
-            { _id: tree._id },
-            { group1: arrGroup11 }
-          ).exec();
+      if (user1.groupNumber === "1") {
+        var i = arrGroup11.indexOf(user1._id);
+        if (i > -1) {
+          arrGroup11[i] = user2._id;
         }
-
-        if (user1.groupNumber === "2") {
-          var i = arrGroup12.indexOf(user1._id);
-          if (i > -1) {
-            arrGroup12[i] = user2._id;
-          }
-          await Tree.findOneAndUpdate(
-            { _id: tree._id },
-            { group2: arrGroup12 }
-          ).exec();
-        }
-
-        if (user1.groupNumber === "3") {
-          var i = arrGroup13.indexOf(user1._id);
-          if (i > -1) {
-            arrGroup13[i] = user2._id;
-          }
-          await Tree.findOneAndUpdate(
-            { _id: tree._id },
-            { group3: arrGroup13 }
-          ).exec();
-        }
-      } else {
-        console.log("fail to find user 1 parent");
-        return;
+        await Tree.findOneAndUpdate(
+          { _id: tree._id },
+          { group1: arrGroup11 }
+        ).exec();
       }
+
+      if (user1.groupNumber === "2") {
+        var i = arrGroup12.indexOf(user1._id);
+        if (i > -1) {
+          arrGroup12[i] = user2._id;
+        }
+        await Tree.findOneAndUpdate(
+          { _id: tree._id },
+          { group2: arrGroup12 }
+        ).exec();
+      }
+
+      if (user1.groupNumber === "3") {
+        var i = arrGroup13.indexOf(user1._id);
+        if (i > -1) {
+          arrGroup13[i] = user2._id;
+        }
+        await Tree.findOneAndUpdate(
+          { _id: tree._id },
+          { group3: arrGroup13 }
+        ).exec();
+      }
+    } else {
+      console.log("fail to find user 1 parent");
+      return;
+    }
   }
 
   // update tree1 to parentId2
