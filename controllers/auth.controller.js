@@ -36,6 +36,43 @@ exports.tranController = async (req, res) => {
   );
 };
 
+exports.checkLinkController = async (req,res) => {
+  const { invite_code, donate_sales_id, group } = req.body;
+  console.log(typeof(group))
+
+  if(invite_code.split('').length !== 24 || donate_sales_id.split('').length !== 24) {
+    res.json({
+      status: 400,
+      message: "Link giới thiệu không đúng",
+      errors: []
+    })
+  } else if(parseInt(group) <= 0 || parseInt(group) > 3) {
+    res.json({
+      status: 400,
+      message: "Link giới thiệu không đúng group",
+      errors: []
+    })
+  } else {
+    const invalid_invite_code = await User.findById(invite_code).exec();
+    const invalid_donate_sales_id = await User.findById(donate_sales_id).exec();
+  
+    if(!invalid_invite_code || !invalid_donate_sales_id) {
+      res.json({
+        status: 400,
+        message: "Link giới thiệu không đúng",
+        errors: []
+      })
+    } else {
+      res.json({
+        status: 200,
+        message: "Link giới thiệu đúng",
+        errors: []
+      })
+    }
+  }
+
+}
+
 exports.createAccountController = async (req, res) => {
   const { values, group, buy_package } = req.body;
   const { full_name, email, phone, invite_code, password } = values;
@@ -128,8 +165,6 @@ exports.registerController = async (req, res) => {
     full_name,
     email,
     password,
-    confirm_password,
-    accept_confirm,
     phone,
     id_code,
     be_member,
@@ -142,8 +177,8 @@ exports.registerController = async (req, res) => {
     gender,
     invite_code,
     donate_sales_id,
-    donate_money_id,
-    groupNumber
+    groupNumber,
+    buy_package
   } = req.body;
 
   const user_repeat_email = await User.findOne({ email }).exec();
@@ -191,69 +226,71 @@ exports.registerController = async (req, res) => {
     }
   }
 
-  // if (errors.length > 0) {
-  //   res.json({ status: 401, errors, message: "Thông tin bị trùng! Xin vui lòng điền lại" });
-  // } else {
-  //   const token = jwt.sign(
-  //     {
-  //       full_name,
-  //       email,
-  //       password,
-  //       phone,
-  //       be_member,
-  //       id_code,
-  //       issued_by,
-  //       bank_account,
-  //       bank_name,
-  //       iden_type,
-  //       tax_code,
-  //       birthday,
-  //       gender,
-  //       buy_package,
-  //     },
-  //     process.env.JWT_ACCOUNT_ACTIVATION,
-  //     { expiresIn: "15m" }
-  //   );
+  if (errors.length > 0) {
+    res.json({ status: 401, errors, message: "Thông tin bị trùng! Xin vui lòng điền lại" });
+  } else {
+    const token = jwt.sign(
+      {
+        full_name,
+        email,
+        password,
+        phone,
+        id_code,
+        be_member,
+        issued_by,
+        bank_account,
+        bank_name,
+        iden_type,
+        tax_code,
+        birthday,
+        gender,
+        invite_code,
+        donate_sales_id,
+        groupNumber
+      },
+      process.env.JWT_ACCOUNT_ACTIVATION,
+      { expiresIn: "15m" }
+    );
 
-  //   const oneYearFromNow = new Date();
-  //   oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+    const oneYearFromNow = new Date();
+    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
 
-  //   const newTransaction = new Transaction({
-  //     status: "pending",
-  //     payment_method: "",
-  //     token,
-  //     created_time: new Date(),
-  //     created_by: full_name,
-  //     email,
-  //     phone,
-  //     expired_time: oneYearFromNow,
-  //     buy_package,
-  //   });
+    const newTransaction = new Transaction({
+      status: "pending",
+      payment_method: "",
+      token,
+      created_time: new Date(),
+      created_by: full_name,
+      email,
+      phone,
+      expired_time: oneYearFromNow,
+      buy_package,
+    });
 
-  //   await newTransaction.save(function (err) {
-  //     if (err) {
-  //       console.log("fail to save transaction!");
-  //       res.json({
-  //         status: 200,
-  //         message: "fail to save transaction!",
-  //         errors: [
-  //           {
-  //             label: "transaction",
-  //             err_message: "Lỗi khi tạo giao dịch.Vui lòng thử lại sau",
-  //           },
-  //         ],
-  //       });
-  //     } else {
-  //       console.log("save transaction done!");
-  //       res.json({
-  //         status: 200,
-  //         message: "",
-  //         data: {email},
-  //         errors,
-  //       });
-  //     }
-  //   });
-  // }
+    await newTransaction.save(function (err) {
+      if (err) {
+        console.log("fail to save transaction!");
+        res.json({
+          status: 200,
+          message: "fail to save transaction!",
+          errors: [
+            {
+              label: "transaction",
+              err_message: "Lỗi khi tạo giao dịch.Vui lòng thử lại sau",
+            },
+          ],
+        });
+      } else {
+        console.log("save transaction done!");
+        res.json({
+          status: 200,
+          message: "",
+          data: {email},
+          errors,
+        });
+      }
+    });
+  }
 };
 
 exports.activationController = (req, res) => {
@@ -277,8 +314,8 @@ exports.activationController = (req, res) => {
             email,
             password,
             phone,
-            be_member,
             id_code,
+            be_member,
             issued_by,
             bank_account,
             bank_name,
@@ -286,7 +323,10 @@ exports.activationController = (req, res) => {
             tax_code,
             birthday,
             gender,
-            buy_package,
+            invite_code,
+            donate_sales_id,
+            groupNumber,
+            buy_package
           } = jwt.decode(token);
 
           bcrypt.genSalt(saltRounds, function (err, salt) {
@@ -296,8 +336,9 @@ exports.activationController = (req, res) => {
                 return res.json(err);
               } else {
                 const userOfPhone = await User.findOne({
-                  phone: invite_code,
+                  _id: donate_sales_id,
                 }).exec();
+                console.log('userOfPhone', userOfPhone);
 
                 const listAva = [
                   "similiquealiasoccaecati",
@@ -322,9 +363,18 @@ exports.activationController = (req, res) => {
                   avatar: `https://robohash.org/${url}?size=100x100&set=set1`,
                   phone,
                   buy_package,
-                  groupNumber: group,
+                  groupNumber,
                   parentId: userOfPhone._id,
                   created_time: new Date(),
+                  id_code,
+                  be_member,
+                  issued_by,
+                  bank_account,
+                  bank_name,
+                  iden_type,
+                  tax_code,
+                  birthday,
+                  gender,
                 });
 
                 user.save(function (err) {
@@ -380,7 +430,7 @@ exports.activationController = (req, res) => {
                           }
                         ).exec();
 
-                        await updateParent(userOfPhone._id, buy_package);
+                        await updateParent(userOfPhone, buy_package);
                         await returnCommission(
                           userOfPhone._id,
                           process.env.COMMISSION,
@@ -388,7 +438,7 @@ exports.activationController = (req, res) => {
                           "Chuyển khoản"
                         );
 
-                        if (group === "1") {
+                        if (groupNumber === "1") {
                           Tree.findOneAndUpdate(
                             {
                               parent: userOfPhone._id,
@@ -412,14 +462,15 @@ exports.activationController = (req, res) => {
                                 returnActiveAppMail(full_name, email, phone);
                                 thankMail(parentName, parentEmail, full_name);
                                 res.json({
-                                  success: true,
+                                  status: 200,
                                   message:
                                     "🎉 Đăng ký thành công, Kiểm tra Email để được hướng dẫn đăng nhập",
+                                  errors: []
                                 });
                               }
                             }
                           );
-                        } else if (group === "2") {
+                        } else if (groupNumber === "2") {
                           Tree.findOneAndUpdate(
                             { parent: userOfPhone._id },
                             {
@@ -441,14 +492,15 @@ exports.activationController = (req, res) => {
                                 returnActiveAppMail(full_name, email, phone);
                                 thankMail(parentName, parentEmail, full_name);
                                 res.json({
-                                  success: true,
+                                  status: 200,
                                   message:
                                     "🎉 Đăng ký thành công, Kiểm tra Email để được hướng dẫn đăng nhập",
+                                    errors: []
                                 });
                               }
                             }
                           );
-                        } else if (group === "3") {
+                        } else if (groupNumber === "3") {
                           Tree.findOneAndUpdate(
                             { parent: userOfPhone._id },
                             {
@@ -470,9 +522,10 @@ exports.activationController = (req, res) => {
                                 returnActiveAppMail(full_name, email, phone);
                                 thankMail(parentName, parentEmail, full_name);
                                 res.json({
-                                  success: true,
+                                  status: 200,
                                   message:
                                     "🎉 Đăng ký thành công, Kiểm tra Email để được hướng dẫn đăng nhập",
+                                  errors: []
                                 });
                               }
                             }
@@ -506,12 +559,11 @@ exports.activationController = (req, res) => {
   }
 };
 
-const updateParent = async (id, buy_package) => {
-  const parent = await User.findOne({ _id: id }).exec();
+const updateParent = async (parent, buy_package) => {
   const checkUp = await checkUpLevel(parent, buy_package);
 
   await User.findOneAndUpdate(
-    { _id: id },
+    { _id: parent._id },
     {
       point: buy_package === "1" ? parent.point + 0.25 : parent.point + 1,
       level: checkUp ? parent.level + 1 : parent.level,
@@ -1383,7 +1435,7 @@ exports.addDemoData = async (req, res) => {
           }
         );
 
-        await updateParent(userOfPhone._id, buy_package);
+        await updateParent(userOfPhone, buy_package);
         const qualified =
           userOfPhone.complete_profile_level !== 1 ? true : false;
         await returnCommission(

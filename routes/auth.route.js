@@ -40,7 +40,8 @@ const {
     userInfoController,
     tranController,
     loginRequest,
-    addDemoData
+    addDemoData,
+    checkLinkController
 } = require('../controllers/auth.controller');
 
 // auth route
@@ -50,6 +51,7 @@ router.post('/activation', activationController);
 router.post('/login', loginController);
 router.post('/user-info', userInfoController);
 router.post('/transaction', tranController);
+router.post('/checkLink', checkLinkController);
 
 // login route
 router.get('/signInRequest', loginRequest);
