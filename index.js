@@ -44,6 +44,9 @@ app.use("/profile", profileRouter);
 const adminRouter = require("./routes/admin.route");
 app.use("/admin", adminRouter);
 
+const clientRouter = require("./routes/client.route");
+app.use("/client", clientRouter);
+
 // Connect to database
 connectDB();
 

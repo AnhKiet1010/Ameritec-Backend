@@ -35,9 +35,6 @@ const userSchema = new mongoose.Schema(
       data: String,
       default: ''
     },
-    complete_profile_level: {
-      type: Number
-    },
     amount: {
       type: Number,
       default: 0
@@ -114,6 +111,9 @@ const userSchema = new mongoose.Schema(
     },
     parentId: {
       type: String
+    },
+    be_member: {
+      type: Boolean
     }
   }
 );
