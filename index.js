@@ -38,9 +38,6 @@ app.use("/tree", treeRouter);
 const transRouter = require("./routes/trans.route");
 app.use("/trans", transRouter);
 
-const profileRouter = require("./routes/profile.route");
-app.use("/profile", profileRouter);
-
 const adminRouter = require("./routes/admin.route");
 app.use("/admin", adminRouter);
 

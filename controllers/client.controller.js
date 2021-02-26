@@ -191,6 +191,7 @@ exports.editProfile = async (req, res) => {
     tax_code,
     password,
   } = values;
+  console.log("req.body", req.body);
 
   const errors = [];
 
@@ -199,19 +200,20 @@ exports.editProfile = async (req, res) => {
   bcrypt.compare(password, user.password, async function (err, result) {
     // result == true
     if (!result || err) {
-      errors.push({
-        label: "password",
-        err_message: "Mật khẩu không đúng. Vui lòng thử lại",
-      });
       return res.json({
         status: 400,
         errors,
         message: "Mật khẩu không đúng. Vui lòng thử lại"
     });
     } else {
-      const valid_phone = await User.findOne({ phone }).exec();
-      const valid_id_code = await User.findOne({ id_code }).exec();
-      const valid_tax_code = await User.findOne({ tax_code }).exec();
+      const valid_phone = await User.findOne({ $and: [{ phone: phone}, {_id: {$ne: id}}] }).exec();
+      const valid_id_code = await User.findOne({  $and: [{ id_code: phone}, {_id: {$ne: id}}]  }).exec();
+      const valid_tax_code = await User.findOne({  $and: [{ tax_code: phone}, {_id: {$ne: id}}]  }).exec();
+      // console.log({
+      //   valid_id_code,
+      //   valid_phone,
+      //   valid_tax_code
+      // });
 
       if (valid_phone) {
         if (JSON.stringify(valid_phone) !== JSON.stringify(user)) {
@@ -246,39 +248,183 @@ exports.editProfile = async (req, res) => {
         });
       } else {
         if (user.be_member) {
-          await User.findOneAndUpdate(
-            { _id },
-            {
-              full_name,
-              phone,
-              birthday,
-              gender,
-              id_code,
-              id_time,
-              issued_by,
-              tax_code,
-            }
-          ).exec();
-          res.json({
-            status: 200,
-            message: "Cập nhật thông tin thành công 🎉",
-            errors: []
-          });
+          const change = false;
+          if(user.full_name !== full_name) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                full_name,
+              }
+            ).exec();
+            change = true;
+          }
+          if(user.phone !== phone) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                phone,
+              }
+            ).exec();
+            change = true;
+          }
+          if(user.birthday !== birthday) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                birthday,
+              }
+            ).exec();
+            change = true;
+          }
+          if(user.gender !== gender) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                gender,
+              }
+            ).exec();
+            change = true;
+          }
+          if(user.id_code !== id_code) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                id_code,
+              }
+            ).exec();
+            change = true;
+          }
+          if(user.id_time !== id_time) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                id_time,
+              }
+            ).exec();
+            change = true;
+          }
+          if(user.issued_by !== issued_by) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                issued_by,
+              }
+            ).exec();
+            change = true;
+          }
+          if(user.tax_code !== tax_code) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                tax_code,
+              }
+            ).exec();
+            change = true;
+          }
+          if(change) {
+            res.json({
+              status: 200,
+              message: "Cập nhật thông tin thành công 🎉",
+              errors: [],
+              data: {
+                newUser: await User.findOne({_id: id}).select("full_name phone birthday gender id_code,id_time,issued_by, tax_code,").exec(),
+                change
+              }
+            });
+          } else {
+            res.json({
+              status: 200,
+              message: "Thông tin không thay đổi",
+              errors: []
+            });
+          }
         } else {
-          await User.findOneAndUpdate(
-            { _id },
-            {
-              full_name,
-              phone,
-            }
-          ).exec();
-          res.json({
-            status: 200,
-            message: "Cập nhật thông tin thành công 🎉",
-            errors: []
-          });
+          let change = false;
+          if(user.full_name !== full_name) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                full_name,
+              }
+            ).exec();
+            change = true;
+          }
+          if(user.phone !== phone) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                phone,
+              }
+            ).exec();
+            change = true;
+          }
+          if(user.birthday !== birthday) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                birthday,
+              }
+            ).exec();
+            change = true;
+          }
+          if(user.gender !== gender) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                gender,
+              }
+            ).exec();
+            change = true;
+          }
+          if(change) {
+            res.json({
+              status: 200,
+              message: "Cập nhật thông tin thành công 🎉",
+              errors: [],
+              data: {
+                newUser: await User.findOne({_id: id}).select("full_name phone birthday gender").exec(),
+                change
+              }
+            });
+          } else {
+            res.json({
+              status: 200,
+              message: "Thông tin không thay đổi",
+              errors: []
+            });
+          }
         }
       }
     }
   });
 };
+
+exports.inviteUrl = async (req, res) => {
+  const { id } = req.body;
+
+  const objBranchChild = await Tree.findOne({ parent: id })
+    .select("group1 group2 group3")
+    .exec();
+
+  const listChildNameBefore = await getFullChildren(
+    [
+      ...objBranchChild.group1,
+      ...objBranchChild.group2,
+      ...objBranchChild.group3,
+    ],
+    []
+  );
+
+  const listChildName = listChildNameBefore.map((child) => {
+    return { value: child._id, label: child.full_name };
+  });
+
+  res.json({
+    status: 200,
+    data: {
+      listChildName
+    },
+    message: "",
+    errors: []
+  });
+}
