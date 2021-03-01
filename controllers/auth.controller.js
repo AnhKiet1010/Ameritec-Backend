@@ -789,6 +789,7 @@ exports.loginController = (req, res) => {
               point: user.point,
               role: user.role,
               phone: user.phone,
+              email: user.email,
             },
           },
           message: "Đăng nhập thành công",

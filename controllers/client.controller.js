@@ -1,5 +1,7 @@
 const User = require("../models/user.model");
 const Tree = require("../models/tree.model");
+const Transaction = require("../models/transaction.model");
+const Commission = require("../models/commission.model");
 const bcrypt = require("bcrypt");
 const {
   countTotalChildMemberForLevel,
@@ -191,11 +193,13 @@ exports.editProfile = async (req, res) => {
     tax_code,
     password,
   } = values;
-  console.log("req.body", req.body);
+  console.log('change gender',req.body.values.gender);
+  console.log('id', id);
 
   const errors = [];
 
   const user = await User.findOne({ _id: id }).exec();
+  console.log('user gender', user.gender);
 
   bcrypt.compare(password, user.password, async function (err, result) {
     // result == true
@@ -209,11 +213,6 @@ exports.editProfile = async (req, res) => {
       const valid_phone = await User.findOne({ $and: [{ phone: phone}, {_id: {$ne: id}}] }).exec();
       const valid_id_code = await User.findOne({  $and: [{ id_code: phone}, {_id: {$ne: id}}]  }).exec();
       const valid_tax_code = await User.findOne({  $and: [{ tax_code: phone}, {_id: {$ne: id}}]  }).exec();
-      // console.log({
-      //   valid_id_code,
-      //   valid_phone,
-      //   valid_tax_code
-      // });
 
       if (valid_phone) {
         if (JSON.stringify(valid_phone) !== JSON.stringify(user)) {
@@ -280,7 +279,7 @@ exports.editProfile = async (req, res) => {
             await User.findOneAndUpdate(
               { _id: id },
               {
-                gender,
+                gender: gender,
               }
             ).exec();
             change = true;
@@ -371,7 +370,7 @@ exports.editProfile = async (req, res) => {
             await User.findOneAndUpdate(
               { _id: id },
               {
-                gender,
+                gender: gender,
               }
             ).exec();
             change = true;
@@ -415,9 +414,9 @@ exports.inviteUrl = async (req, res) => {
     []
   );
 
-  const listChildName = listChildNameBefore.map((child) => {
+  const listChildName = [{id: "", value: ""}, ...listChildNameBefore.map((child) => {
     return { value: child._id, label: child.full_name };
-  });
+  })];
 
   res.json({
     status: 200,
@@ -427,4 +426,21 @@ exports.inviteUrl = async (req, res) => {
     message: "",
     errors: []
   });
+}
+
+exports.transaction = async (req,res) => {
+const { id } = req.params;
+const user = await User.findOne({_id: id }).exec();
+const transaction = await Transaction.find({email: user.email, status: 'success'}).exec();
+const commission = await Commission.find({receive_mem: id}).sort({_id: -1}).exec();
+
+res.json({
+  status: 200,
+  data: {
+    transaction,
+    commission
+  }, 
+  message: "",
+  errors: []
+});
 }
