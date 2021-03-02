@@ -6,6 +6,8 @@ const Extension = require("../models/extension.model");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const sgMail = require("@sendgrid/mail");
+const md5 = require('md5');
+const axios = require('axios');
 sgMail.setApiKey(process.env.MAIL_KEY);
 
 const saltRounds = 10;
