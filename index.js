@@ -44,6 +44,9 @@ app.use("/admin", adminRouter);
 const clientRouter = require("./routes/client.route");
 app.use("/client", clientRouter);
 
+const paymentRouter = require("./routes/payment.route");
+app.use("/payment", paymentRouter);
+
 // Connect to database
 connectDB();
 

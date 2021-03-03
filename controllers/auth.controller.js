@@ -6,8 +6,12 @@ const Extension = require("../models/extension.model");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const sgMail = require("@sendgrid/mail");
-const md5 = require('md5');
-const axios = require('axios');
+const md5 = require("md5");
+const {
+  checkoutNganLuong,
+  callbackNganLuong,
+} = require("./nganluong-handlers");
+const axios = require("axios");
 sgMail.setApiKey(process.env.MAIL_KEY);
 
 const saltRounds = 10;
@@ -15,27 +19,83 @@ const saltRounds = 10;
 const e = require("express");
 
 exports.tranController = async (req, res) => {
-  const { regis_email, payment_method } = req.body;
+  console.log('body',req.body);
+  const { email, payment_method } = req.body;
+  if (
+    payment_method === "nganluong" ||
+    payment_method === "nganluongvisa"
+  ) {
+    const userAgent = req.headers["user-agent"];
+    console.log("userAgent", userAgent);
 
-  Transaction.findOneAndUpdate(
-    { email: regis_email },
-    { payment_method },
-    function (err) {
-      if (err) {
-        res.json({
-          status: 401,
-          message: "Lỗi khi cập nhật giao dịch.Vui lòng thử lại sau",
-          errors: [],
-        });
-      } else {
-        res.json({
-          status: 200,
-          message: "",
-          errors: [],
-        });
-      }
+    const params = Object.assign({}, req.body);
+
+    const clientIp =
+      req.headers["x-forwarded-for"] ||
+      req.connection.remoteAddress ||
+      req.socket.remoteAddress ||
+      (req.connection.socket ? req.connection.socket.remoteAddress : null);
+
+    const amount = parseInt(params.total_amount.replace(/,/g, ""), 10);
+    const now = new Date();
+
+    // NOTE: only set the common required fields and optional fields from all gateways here, redundant fields will invalidate the payload schema checker
+    const checkoutData = {
+      amount,
+      name: params.name,
+      clientIp: clientIp.length > 15 ? "127.0.0.1" : clientIp,
+      locale: "vn",
+      city: params.city || "",
+      district: params.district || "",
+      country: params.country || "",
+      address: params.address || "",
+      currency: "VND",
+      customerEmail: params.email,
+      customerPhone: params.phone,
+      orderId: `Ameritec-${now.toISOString()}`,
+      transactionId: `Ameritec-${now.toISOString()}`, // same as orderId (we don't have retry mechanism)
+      customerId: params.email,
+    };
+
+    // pass checkoutData to gateway middleware via res.locals
+    res.locals.checkoutData = checkoutData;
+
+    // Note: these handler are asynchronous
+    let asyncCheckout = null;
+    switch (payment_method) {
+      case "nganluong":
+        // this param is not expected in other gateway
+        checkoutData.customerName = `${params.name}`.trim();
+        checkoutData.paymentMethod = "NL";
+        checkoutData.bankCode = "BIDVVNVX";
+        asyncCheckout = checkoutNganLuong(req, res);
+        break;
+      case "nganluongvisa":
+        // this param is not expected in other gateway
+        checkoutData.customerName = `${params.name}`.trim();
+        checkoutData.paymentMethod = "VISA";
+        asyncCheckout = checkoutNganLuong(req, res);
+        break;
+      default:
+        break;
     }
-  );
+    
+    if(asyncCheckout) {
+      asyncCheckout
+        .then((checkoutUrl) => {
+          res.writeHead(301, { Location: checkoutUrl.href });
+          res.end();
+        })
+        .catch((err) => {
+          res.send(err.message);
+        });
+    } else {
+      res.send("Payment method not found");
+    }
+  } else if(payment_method === "tienmat") {
+    await Transaction.findOneAndUpdate({ email }, { payment_method: "tienmat"}).exec();
+    res.send("trả tiền mặt");
+  }
 };
 
 exports.checkLinkController = async (req, res) => {
@@ -182,7 +242,7 @@ exports.registerController = async (req, res) => {
     donate_sales_id,
     groupNumber,
     buy_package,
-    id_time
+    id_time,
   } = req.body;
 
   const user_repeat_email = await User.findOne({ email }).exec();
@@ -256,7 +316,7 @@ exports.registerController = async (req, res) => {
         donate_sales_id,
         groupNumber,
         buy_package,
-        id_time
+        id_time,
       },
       process.env.JWT_ACCOUNT_ACTIVATION,
       { expiresIn: "15m" }
@@ -295,7 +355,7 @@ exports.registerController = async (req, res) => {
         res.json({
           status: 200,
           message: "",
-          data: { email },
+          data: { email, full_name, phone },
           errors,
         });
       }
@@ -337,7 +397,7 @@ exports.activationController = (req, res) => {
             donate_sales_id,
             groupNumber,
             buy_package,
-            id_time
+            id_time,
           } = jwt.decode(token);
 
           bcrypt.genSalt(saltRounds, function (err, salt) {
@@ -389,7 +449,7 @@ exports.activationController = (req, res) => {
                   tax_code,
                   birthday,
                   gender,
-                  id_time
+                  id_time,
                 });
 
                 user.save(function (err) {
