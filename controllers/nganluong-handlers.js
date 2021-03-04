@@ -11,14 +11,15 @@ const nganluong = new NganLuong({
 exports.checkoutNganLuong = (req, res) => {
 	const checkoutData = res.locals.checkoutData;
 	checkoutData.returnUrl = `http://${req.headers.host}/payment/nganluong/callback`;
-	checkoutData.cancelUrl = `http://${req.headers.host}`;
+	checkoutData.cancelUrl = `http://${req.headers.host}/payment/cancel`;
 	checkoutData.orderInfo = 'Mua thiết bị bảo mật di động';
 	checkoutData.locale = checkoutData.locale === 'en' ? 'en' : 'vi';
 	checkoutData.paymentType = '1';
 	checkoutData.totalItem = '1';
 	console.log('checkoutData',checkoutData);
 
-	nganluong.buildCheckoutUrl(checkoutData).then(checkoutUrl => {
+	return nganluong.buildCheckoutUrl(checkoutData).then(checkoutUrl => {
+		console.log('checkoutUrl',checkoutUrl);
 		res.locals.checkoutUrl = checkoutUrl;
 		return checkoutUrl;
 	});

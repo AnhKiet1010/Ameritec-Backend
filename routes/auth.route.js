@@ -38,7 +38,6 @@ const {
     forgotPasswordController,
     resetPasswordController,
     userInfoController,
-    tranController,
     loginRequest,
     addDemoData,
     checkLinkController
@@ -50,7 +49,6 @@ router.post('/create-account', createAccountController);
 router.post('/activation', activationController);
 router.post('/login', loginController);
 router.post('/user-info', userInfoController);
-router.post('/transaction', tranController);
 router.post('/checkLink', checkLinkController);
 
 // login route

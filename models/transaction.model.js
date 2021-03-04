@@ -37,6 +37,12 @@ const tranSchema = new mongoose.Schema(
     },
     expired_time: {
       type: String
+    },
+    orderId: {
+      type: String
+    },
+    amount: {
+      type: String
     }
   }
 );
