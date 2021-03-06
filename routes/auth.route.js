@@ -32,7 +32,6 @@ var upload = multer({
 
 const {
     registerController,
-    createAccountController,
     activationController,
     loginController,
     forgotPasswordController,
@@ -45,7 +44,6 @@ const {
 
 // auth route
 router.post('/register', registerController);
-router.post('/create-account', createAccountController);
 router.post('/activation', activationController);
 router.post('/login', loginController);
 router.post('/user-info', userInfoController);
