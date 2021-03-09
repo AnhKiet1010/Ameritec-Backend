@@ -1,7 +1,52 @@
 const User = require("../models/user.model");
 const Tree = require("../models/tree.model");
-const Activation = require("../models/activation.model");
-const axios = require("axios");
+const sgMail = require("@sendgrid/mail");
+sgMail.setApiKey(process.env.MAIL_KEY);
+
+const countTotalChildMemberForLevel = async (
+  subTreeIdList,
+  countLevel,
+  level
+) => {
+  var count = 0;
+  for (let id of subTreeIdList) {
+    let branchObject = await Tree.findOne({ parent: id })
+      .select("buy_package")
+      .exec();
+    if (branchObject.buy_package !== "1") {
+      count++;
+    }
+  }
+
+  if (countLevel === level) {
+    return count;
+  } else {
+    for (let i = 0; i < subTreeIdList.length; i++) {
+      let branchObject = await Tree.findOne({ parent: subTreeIdList[i]._id })
+        .select("group1 group2 group3 buy_package")
+        .exec();
+
+      if (branchObject) {
+        let group = [
+          ...branchObject.group1,
+          ...branchObject.group2,
+          ...branchObject.group3,
+        ];
+        if (group.length !== 0 && branchObject.buy_package !== "1") {
+          count += await countTotalChildMemberForLevel(
+            group,
+            countLevel++,
+            level
+          );
+        } else {
+          return count;
+        }
+      } else {
+        continue;
+      }
+    }
+  }
+};
 
 exports.countTotalChildMemberForLevel = async (
   subTreeIdList,
@@ -287,7 +332,7 @@ exports.getSubUserListAndChildNumber = async (current_user_id) => {
   return { subTreeIdList, subUserListAndChild };
 };
 
-exports.updateParent = async (id, buy_package) => {
+const updateParent = async (id, buy_package) => {
   const parent = await User.findOne({ _id: id }).exec();
   console.log("findParentToUpdate", parent);
   const checkUp = await checkUpLevel(parent, buy_package);
@@ -305,56 +350,6 @@ exports.updateParent = async (id, buy_package) => {
   } else {
     await updateParent(parent.parentId, buy_package);
   }
-};
-
-
-exports.returnActiveAppMail = async (full_name, email, phone) => {
-
-  const links = await getActiveLink(full_name, email, phone);
-  const emailData = {
-    from: process.env.EMAIL_FROM,
-    to: email,
-    subject: "💌 ĐÃ KÍCH HOẠT TÀI KHOẢN THÀNH CÔNG",
-    html: `<!DOCTYPE html>
-    <html lang="en">
-          <head>
-          <meta name="format-detection" content="telephone=no">
-          <meta name="format-detection" content="email=no">
-          </head>
-          <body>
-              <h1>THÔNG TIN</h1>
-                <ul>
-                  <li>Họ và Tên : ${full_name}</li>
-                  <li>Email : ${email}</li>
-                  <li>Số điện thoại : ${phone}</li>
-                  <li>Link giới thiệu : Vui lòng đăng nhập vào hệ thống để tạo <a href="${process.env.CLIENT_URL}/login">link giới thiệu</a></li>
-                </ul>
-              <h1>ĐƯỜNG DẪN KÍCH HOẠT AIPS APP</h1>
-              <ul>
-                <li>link 1 : <a href="https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${links[0]}">nhấp vào đây để active</a></li>
-                <li>link 2 : <a href="https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${links[1]}">nhấp vào đây để active</a></li>
-                <li>link 3 : <a href="https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${links[2]}">nhấp vào đây để active</a></li>
-                <li>link 4 : <a href="https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${links[3]}">nhấp vào đây để active</a></li>
-              </ul>
-              <hr />
-              <p>Mọi thông tin xin vui lòng liên hệ</p>
-              <p>${process.env.CLIENT_URL}</p>
-              <p>Link đăng nhập</p>
-              <p>${process.env.CLIENT_URL}/login</p>
-          </body>
-          </html>
-          `,
-  };
-
-  sgMail.send(emailData, async (error, result) => {
-    if (error) {
-      console.log("error when send email success!");
-      return false;
-    } else {
-      console.log("success mail sended!!!!");
-      return true;
-    }
-  });
 };
 
 exports.thankMail = (parentName, parentEmail, full_name) => {
@@ -393,81 +388,6 @@ exports.thankMail = (parentName, parentEmail, full_name) => {
     }
   });
 };
-
-const getActiveLink = async (email, full_name , phone) => {
-  let accessToken = "";
-  let groupId = "";
-  let links = [];
-  await axios.post(`${process.env.APP_ZIMPERIUM_LOGIN_LINK}`, {
-    clientId: process.env.APP_ZIMPERIUM_CLIENT,
-    secret: process.env.APP_ZIMPERIUM_SECRET,
-  }
-  ).then(res => {
-    accessToken = res.data.accessToken;
-  }).catch(err => {
-    console.log("err in get active link accessToken",err);
-  });
-
-  await axios.get(`${process.env.APP_GET_GROUPS_LINK}`
-  , 
-  {
-    headers: { 
-      Authorization: "Bearer " + accessToken,
-      ContentType: "application/json"
-    }
-  }
-  ).then(res => {
-    groupId = res.data[0].id;
-  }).catch(err => {
-    console.log("err in get active link groupId",err);
-  });
-
-  for(let i = 0; i <= 3; i++) {
-    await axios.post(`${process.env.APP_CREATE_USER_LINK}`,{
-      activationLimit: 4,
-      email: `${i}${email}`,
-      firstName: full_name,
-      groupId,
-      lastName: i,
-      phoneNumber: phone,
-      sendEmailInvite: false,
-      sendSmsInvite: false
-    }
-    , 
-    {
-      headers: { 
-        Authorization: "Bearer " + accessToken,
-        ContentType: "application/json"
-      }
-    }
-    ).then(async res => {
-      const activation = new Activation({
-        linkId: res.data.id,
-        accountId: res.data.accountId,
-        groupId: res.data.groupId,
-        firstName: res.data.firstName,
-        lastName: res.data.lastName,
-        activationLimit: res.data.activationLimit,
-        activationCount: res.data.activationCount,
-        licenseJwt: res.data.licenseJwt,
-        shortToken: res.data.shortToken,
-        created: res.data.created,
-        modified: res.data.modified,
-      });
-
-      await activation.save((err) => {
-        if(err) {
-          console.log("err when save activation", err);
-        } else {
-          links.push(res.data.shortToken);
-        }
-      });
-    }).catch(err => {
-      console.log("err in get active link",err);
-    });
-  }
-  return links;
-}
 
 const getListChildId = async (id) => {
     const objBranch = await Tree.findOne({ parent: id }).select('group1 group2 group3').exec();

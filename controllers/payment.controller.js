@@ -122,7 +122,7 @@ exports.callback = async (req, res) => {
   }
 
   if (asyncFunc) {
-    asyncFunc.then(() => {
+    await asyncFunc.then(async () => {
       // res.json({
       //   status: 200,
       //   message: "Thanh toán thành công",
@@ -138,8 +138,9 @@ exports.callback = async (req, res) => {
       const orderId = res.locals.orderId;
       const price = res.locals.price;
       const message = res.locals.message;
+      console.log("email",res.locals.email);
       if (isSucceed) {
-        const trans = Transaction.findOne({ email }).exec();
+        const trans = await Transaction.findOne({ email: res.locals.email }).exec();
         const { token, email, created_by, package_buy, phone } = trans;
 
         const emailData = {
