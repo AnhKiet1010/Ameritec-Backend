@@ -114,6 +114,9 @@ const userSchema = new mongoose.Schema(
     },
     be_member: {
       type: Boolean
+    },
+    expired: {
+      type: Boolean
     }
   }
 );

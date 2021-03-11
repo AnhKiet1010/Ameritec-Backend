@@ -13,6 +13,132 @@ sgMail.setApiKey(process.env.MAIL_KEY);
 
 const saltRounds = 10;
 
+exports.getActiveLink = async (req,res) => {
+  const { email, full_name , phone, buy_package } = req.body;
+  let accessToken = "";
+  let groupId = process.env.APP_GROUP_ID;
+  let links = [];
+  await axios.post(`${process.env.APP_ZIMPERIUM_LOGIN_LINK}`, {
+    clientId: process.env.APP_ZIMPERIUM_CLIENT,
+    secret: process.env.APP_ZIMPERIUM_SECRET,
+  }
+  ).then(res => {
+    accessToken = res.data.accessToken;
+  }).catch(err => {
+    console.log("err in get active link accessToken",err);
+  });
+
+  console.log("accessToken",accessToken);
+
+  // await axios.get(`${process.env.APP_GET_GROUPS_LINK}`
+  // , 
+  // {
+  //   headers: { 
+  //     Authorization: "Bearer " + accessToken,
+  //     ContentType: "application/json"
+  //   }
+  // }
+  // ).then(res => {
+  //   groupId = res.data[0].id;
+  // }).catch(err => {
+  //   console.log("err in get active link groupId",err);
+  // });
+
+  console.log("groupId",groupId);
+
+  if(buy_package === "1") {
+    await axios.post(`${process.env.APP_CREATE_USER_LINK}`,{
+      activationLimit: 4,
+      email: `${email}`,
+      firstName: full_name,
+      groupId,
+      lastName: "",
+      phoneNumber: phone,
+      sendEmailInvite: false,
+      sendSmsInvite: false
+    }
+    , 
+    {
+      headers: { 
+        Authorization: "Bearer " + accessToken,
+        ContentType: "application/json"
+      }
+    }
+    ).then(async res => {
+      const activation = new Activation({
+        linkId: res.data.id,
+        accountId: res.data.accountId,
+        groupId: res.data.groupId,
+        firstName: res.data.firstName,
+        lastName: res.data.lastName,
+        activationLimit: res.data.activationLimit,
+        activationCount: res.data.activationCount,
+        licenseJwt: res.data.licenseJwt,
+        shortToken: res.data.shortToken,
+        created: res.data.created,
+        modified: res.data.modified,
+      });
+
+      await activation.save((err) => {
+        if(err) {
+          console.log("err when save activation", err);
+        } else {
+          links.push(res.data.shortToken);
+        }
+      });
+    }).catch(err => {
+      console.log("err in get active link",err);
+    });
+  } else {
+    for(let i = 0; i <= 3; i++) {
+      await axios.post(`${process.env.APP_CREATE_USER_LINK}`,{
+        activationLimit: 4,
+        email: `${i}${email}`,
+        firstName: full_name,
+        groupId,
+        lastName: i,
+        phoneNumber: phone,
+        sendEmailInvite: false,
+        sendSmsInvite: false
+      }
+      , 
+      {
+        headers: { 
+          Authorization: "Bearer " + accessToken,
+          ContentType: "application/json"
+        }
+      }
+      ).then(async res => {
+        const activation = new Activation({
+          linkId: res.data.id,
+          accountId: res.data.accountId,
+          groupId: res.data.groupId,
+          firstName: res.data.firstName,
+          lastName: res.data.lastName,
+          activationLimit: res.data.activationLimit,
+          activationCount: res.data.activationCount,
+          licenseJwt: res.data.licenseJwt,
+          shortToken: res.data.shortToken,
+          created: res.data.created,
+          modified: res.data.modified,
+        });
+  
+        await activation.save((err) => {
+          if(err) {
+            console.log("err when save activation", err);
+          } else {
+            links.push(res.data.shortToken);
+          }
+        });
+      }).catch(err => {
+        console.log("err in get active link",err);
+      });
+    }
+  }
+
+  res.json({links});
+}
+
 const getActiveLink = async (email, full_name , phone, buy_package) => {
   let accessToken = "";
   let groupId = "";
@@ -518,7 +644,6 @@ exports.activationController = async (req, res) => {
                   const userOfInvite = await User.findOne({
                     _id: invite_code,
                   }).exec();
-                  console.log("userOfInvite", userOfInvite);
   
                   const listAva = [
                     "similiquealiasoccaecati",

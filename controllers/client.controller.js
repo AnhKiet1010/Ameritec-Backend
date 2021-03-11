@@ -247,7 +247,7 @@ exports.editProfile = async (req, res) => {
         });
       } else {
         if (user.be_member) {
-          const change = false;
+          let change = false;
           if(user.full_name !== full_name) {
             await User.findOneAndUpdate(
               { _id: id },
