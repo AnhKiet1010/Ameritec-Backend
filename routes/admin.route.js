@@ -7,16 +7,16 @@ const {
     getDashboard,
     getPendingList,
     postLogin,
-    getFolderView,
+    getTree,
     editTree,
     changeTree
 } = require('../controllers/admin.controller');
 
 router.get('/dashboard', getDashboard);
-router.get('/getPendingList',checkAdmin, getPendingList);
-router.get('/getFolderView',checkAdmin, getFolderView);
+router.get('/getPendingList', getPendingList);
+router.get('/tree/:id/:search', getTree);
 router.post('/login', postLogin);
-router.post('/edit-tree',checkAdminPost, editTree);
-router.post('/change-tree',checkAdminPost, changeTree);
+router.post('/edit-tree', editTree);
+router.post('/change-tree', changeTree);
 
 module.exports = router;

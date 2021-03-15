@@ -23,8 +23,8 @@ app.use(
 );
 
 // Dev Login Middleware
-  app.use(cors());
-  app.use(morgan("dev"));
+app.use(cors());
+app.use(morgan("dev"));
 
 app.get("/", (req, res) => {
   res.send("success");

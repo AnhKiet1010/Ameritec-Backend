@@ -105,53 +105,23 @@ const countTotalBusinessPackage = async () => {
 };
 
 exports.getDashboard = async (req, res) => {
-  const { token, viewType } = req.query;
+  const { id } = req.params;
 
-  if (token) {
-    jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
-      if (err) {
-        console.log("token error");
-        res.json({
-          success: false,
-          errors: [
-            {
-              label: "token_error",
-              err_message: "Phiên đăng nhập hết hạn hoặc không đúng",
-            },
-          ],
-        });
-      } else {
-        const countPersonPackages = await countTotalPersonPackage();
-        const countBusinessPackages = await countTotalBusinessPackage();
+  const countPersonPackages = await countTotalPersonPackage();
+  const countBusinessPackages = await countTotalBusinessPackage();
 
-        const listUser = await User.find().sort({ _id: -1 }).exec();
+  const listUser = await User.find({role: {$ne: "admin"}}).sort({ _id: -1 }).exec();
 
-        const listUserFilter = [];
-        const ourDate = new Date().toLocaleDateString("vi");
-
-        if (viewType === "0") {
-          for (let user of listUser) {
-            const passDate = new Date(user.created_time).toLocaleDateString(
-              "vi"
-            );
-
-            if (ourDate === passDate) {
-              listUserFilter.push(user);
-            } else {
-              continue;
-            }
-          }
-        }
-
-        res.json({
-          success: true,
-          countPersonPackages,
-          countBusinessPackages,
-          listUserFilter: listUser,
-        });
-      }
-    });
-  }
+  res.json({
+    status: 200,
+    data: {
+      countPersonPackages,
+      countBusinessPackages,
+      listUserFilter: listUser,
+    },
+    errors: [],
+    message: ""
+  });
 };
 
 exports.getPendingList = async (req, res) => {
@@ -298,10 +268,12 @@ const getTreeOfOneAgency = async (searchId) => {
   return root;
 };
 
-exports.getFolderView = async (req, res) => {
-  const listAgency = await User.find({ parentId: "" }).exec();
+exports.getTree = async (req, res) => {
+  const { id, search } = req.params;
 
-  const listAllUser = await User.find().select("full_name").exec();
+  const listAgency = await User.find({ parentId: id }).exec();
+
+  const listAllUser = await User.find({role: {$ne: 'admin'}}).select("full_name").exec();
 
   const listChildName = listAllUser.map((child) => {
     return { value: child._id, label: child.full_name };
@@ -317,7 +289,14 @@ exports.getFolderView = async (req, res) => {
       root.push(tree);
     }
   }
-  res.json({ listChildName, group: root });
+  res.json({
+    status: 200,
+    data: {
+      listChildName, group: root 
+    },
+    errors: [],
+    message: ""
+    });
 };
 
 exports.editTree = async (req, res) => {

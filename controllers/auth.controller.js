@@ -13,27 +13,29 @@ sgMail.setApiKey(process.env.MAIL_KEY);
 
 const saltRounds = 10;
 
-exports.getActiveLink = async (req,res) => {
-  const { email, full_name , phone, buy_package } = req.body;
+exports.getActiveLink = async (req, res) => {
+  const { email, full_name, phone, buy_package } = req.body;
   let accessToken = "";
   let groupId = process.env.APP_GROUP_ID;
   let links = [];
-  await axios.post(`${process.env.APP_ZIMPERIUM_LOGIN_LINK}`, {
-    clientId: process.env.APP_ZIMPERIUM_CLIENT,
-    secret: process.env.APP_ZIMPERIUM_SECRET,
-  }
-  ).then(res => {
-    accessToken = res.data.accessToken;
-  }).catch(err => {
-    console.log("err in get active link accessToken",err);
-  });
+  await axios
+    .post(`${process.env.APP_ZIMPERIUM_LOGIN_LINK}`, {
+      clientId: process.env.APP_ZIMPERIUM_CLIENT,
+      secret: process.env.APP_ZIMPERIUM_SECRET,
+    })
+    .then((res) => {
+      accessToken = res.data.accessToken;
+    })
+    .catch((err) => {
+      console.log("err in get active link accessToken", err);
+    });
 
-  console.log("accessToken",accessToken);
+  console.log("accessToken", accessToken);
 
   // await axios.get(`${process.env.APP_GET_GROUPS_LINK}`
-  // , 
+  // ,
   // {
-  //   headers: { 
+  //   headers: {
   //     Authorization: "Bearer " + accessToken,
   //     ContentType: "application/json"
   //   }
@@ -44,71 +46,30 @@ exports.getActiveLink = async (req,res) => {
   //   console.log("err in get active link groupId",err);
   // });
 
-  console.log("groupId",groupId);
+  console.log("groupId", groupId);
 
-  if(buy_package === "1") {
-    await axios.post(`${process.env.APP_CREATE_USER_LINK}`,{
-      activationLimit: 4,
-      email: `${email}`,
-      firstName: full_name,
-      groupId,
-      lastName: "",
-      phoneNumber: phone,
-      sendEmailInvite: false,
-      sendSmsInvite: false
-    }
-    , 
-    {
-      headers: { 
-        Authorization: "Bearer " + accessToken,
-        ContentType: "application/json"
-      }
-    }
-    ).then(async res => {
-      const activation = new Activation({
-        linkId: res.data.id,
-        accountId: res.data.accountId,
-        groupId: res.data.groupId,
-        firstName: res.data.firstName,
-        lastName: res.data.lastName,
-        activationLimit: res.data.activationLimit,
-        activationCount: res.data.activationCount,
-        licenseJwt: res.data.licenseJwt,
-        shortToken: res.data.shortToken,
-        created: res.data.created,
-        modified: res.data.modified,
-      });
-
-      await activation.save((err) => {
-        if(err) {
-          console.log("err when save activation", err);
-        } else {
-          links.push(res.data.shortToken);
+  if (buy_package === "1") {
+    await axios
+      .post(
+        `${process.env.APP_CREATE_USER_LINK}`,
+        {
+          activationLimit: 4,
+          email: `${email}`,
+          firstName: full_name,
+          groupId,
+          lastName: "",
+          phoneNumber: phone,
+          sendEmailInvite: false,
+          sendSmsInvite: false,
+        },
+        {
+          headers: {
+            Authorization: "Bearer " + accessToken,
+            ContentType: "application/json",
+          },
         }
-      });
-    }).catch(err => {
-      console.log("err in get active link",err);
-    });
-  } else {
-    for(let i = 0; i <= 3; i++) {
-      await axios.post(`${process.env.APP_CREATE_USER_LINK}`,{
-        activationLimit: 4,
-        email: `${i}${email}`,
-        firstName: full_name,
-        groupId,
-        lastName: i,
-        phoneNumber: phone,
-        sendEmailInvite: false,
-        sendSmsInvite: false
-      }
-      , 
-      {
-        headers: { 
-          Authorization: "Bearer " + accessToken,
-          ContentType: "application/json"
-        }
-      }
-      ).then(async res => {
+      )
+      .then(async (res) => {
         const activation = new Activation({
           linkId: res.data.id,
           accountId: res.data.accountId,
@@ -122,114 +83,128 @@ exports.getActiveLink = async (req,res) => {
           created: res.data.created,
           modified: res.data.modified,
         });
-  
+
         await activation.save((err) => {
-          if(err) {
+          if (err) {
             console.log("err when save activation", err);
           } else {
             links.push(res.data.shortToken);
           }
         });
-      }).catch(err => {
-        console.log("err in get active link",err);
+      })
+      .catch((err) => {
+        console.log("err in get active link", err.message);
       });
+  } else {
+    for (let i = 0; i <= 3; i++) {
+
+      let newEmail = email.split("@");
+
+      let result = newEmail[0] + i + "@" + newEmail[1];
+      await axios
+        .post(
+          `${process.env.APP_CREATE_USER_LINK}`,
+          {
+            activationLimit: 4,
+            email: result,
+            firstName: full_name,
+            groupId,
+            lastName: `${i}`,
+            phoneNumber: phone,
+            sendEmailInvite: false,
+            sendSmsInvite: false,
+          },
+          {
+            headers: {
+              Authorization: "Bearer " + accessToken,
+              ContentType: "application/json",
+            },
+          }
+        )
+        .then(async (res) => {
+          const activation = new Activation({
+            linkId: res.data.id,
+            accountId: res.data.accountId,
+            groupId: res.data.groupId,
+            firstName: res.data.firstName,
+            lastName: res.data.lastName,
+            activationLimit: res.data.activationLimit,
+            activationCount: res.data.activationCount,
+            licenseJwt: res.data.licenseJwt,
+            shortToken: res.data.shortToken,
+            created: res.data.created,
+            modified: res.data.modified,
+          });
+
+          await activation.save((err) => {
+            if (err) {
+              console.log("err when save activation", err);
+            } else {
+              links.push(res.data.shortToken);
+            }
+          });
+        })
+        .catch((err) => {
+          console.log("err in get active link", err);
+        });
     }
   }
 
-  res.json({links});
-}
+  res.json({ links });
+};
 
-const getActiveLink = async (email, full_name , phone, buy_package) => {
+const getActiveLink = async (email, full_name, phone, buy_package) => {
   let accessToken = "";
   let groupId = "";
   let links = [];
-  await axios.post(`${process.env.APP_ZIMPERIUM_LOGIN_LINK}`, {
-    clientId: process.env.APP_ZIMPERIUM_CLIENT,
-    secret: process.env.APP_ZIMPERIUM_SECRET,
-  }
-  ).then(res => {
-    accessToken = res.data.accessToken;
-  }).catch(err => {
-    console.log("err in get active link accessToken",err);
-  });
-
-  await axios.get(`${process.env.APP_GET_GROUPS_LINK}`
-  , 
-  {
-    headers: { 
-      Authorization: "Bearer " + accessToken,
-      ContentType: "application/json"
-    }
-  }
-  ).then(res => {
-    groupId = res.data[0].id;
-  }).catch(err => {
-    console.log("err in get active link groupId",err);
-  });
-
-  if(buy_package === "1") {
-    await axios.post(`${process.env.APP_CREATE_USER_LINK}`,{
-      activationLimit: 4,
-      email: `${email}`,
-      firstName: full_name,
-      groupId,
-      lastName: "",
-      phoneNumber: phone,
-      sendEmailInvite: false,
-      sendSmsInvite: false
-    }
-    , 
-    {
-      headers: { 
-        Authorization: "Bearer " + accessToken,
-        ContentType: "application/json"
-      }
-    }
-    ).then(async res => {
-      const activation = new Activation({
-        linkId: res.data.id,
-        accountId: res.data.accountId,
-        groupId: res.data.groupId,
-        firstName: res.data.firstName,
-        lastName: res.data.lastName,
-        activationLimit: res.data.activationLimit,
-        activationCount: res.data.activationCount,
-        licenseJwt: res.data.licenseJwt,
-        shortToken: res.data.shortToken,
-        created: res.data.created,
-        modified: res.data.modified,
-      });
-
-      await activation.save((err) => {
-        if(err) {
-          console.log("err when save activation", err);
-        } else {
-          links.push(res.data.shortToken);
-        }
-      });
-    }).catch(err => {
-      console.log("err in get active link",err);
+  await axios
+    .post(`${process.env.APP_ZIMPERIUM_LOGIN_LINK}`, {
+      clientId: process.env.APP_ZIMPERIUM_CLIENT,
+      secret: process.env.APP_ZIMPERIUM_SECRET,
+    })
+    .then((res) => {
+      accessToken = res.data.accessToken;
+    })
+    .catch((err) => {
+      console.log("err in get active link accessToken", err);
     });
-  } else {
-    for(let i = 0; i <= 3; i++) {
-      await axios.post(`${process.env.APP_CREATE_USER_LINK}`,{
-        activationLimit: 4,
-        email: `${i}${email}`,
-        firstName: full_name,
-        groupId,
-        lastName: i,
-        phoneNumber: phone,
-        sendEmailInvite: false,
-        sendSmsInvite: false
-      }
-      , 
-      {
-        headers: { 
-          Authorization: "Bearer " + accessToken,
-          ContentType: "application/json"
+
+  await axios
+    .get(`${process.env.APP_GET_GROUPS_LINK}`, {
+      headers: {
+        Authorization: "Bearer " + accessToken,
+        ContentType: "application/json",
+      },
+    })
+    .then((res) => {
+      groupId = res.data[0].id;
+    })
+    .catch((err) => {
+      console.log("err in get active link groupId", err);
+    });
+
+  if (buy_package === "1") {
+    await axios
+      .post(
+        `${process.env.APP_CREATE_USER_LINK}`,
+        {
+          activationLimit: 4,
+          email: `${email}`,
+          firstName: full_name,
+          groupId,
+          lastName: "",
+          phoneNumber: phone,
+          sendEmailInvite: false,
+          sendSmsInvite: false,
+        },
+        {
+          headers: {
+            Authorization: "Bearer " + accessToken,
+            ContentType: "application/json",
+          },
         }
-      }
-      ).then(async res => {
+      )
+      .then(async (res) => {
         const activation = new Activation({
           linkId: res.data.id,
           accountId: res.data.accountId,
@@ -243,22 +218,74 @@ const getActiveLink = async (email, full_name , phone, buy_package) => {
           created: res.data.created,
           modified: res.data.modified,
         });
-  
+
         await activation.save((err) => {
-          if(err) {
+          if (err) {
             console.log("err when save activation", err);
           } else {
             links.push(res.data.shortToken);
           }
         });
-      }).catch(err => {
-        console.log("err in get active link",err);
+      })
+      .catch((err) => {
+        console.log("err in get active link", err);
       });
+  } else {
+    for (let i = 0; i <= 3; i++) {
+      let newEmail = email.split("@");
+
+      let result = newEmail[0] + i + "@" + newEmail[1];
+      await axios
+        .post(
+          `${process.env.APP_CREATE_USER_LINK}`,
+          {
+            activationLimit: 4,
+            email: result,
+            firstName: full_name,
+            groupId,
+            lastName: `${i}`,
+            phoneNumber: phone,
+            sendEmailInvite: false,
+            sendSmsInvite: false,
+          },
+          {
+            headers: {
+              Authorization: "Bearer " + accessToken,
+              ContentType: "application/json",
+            },
+          }
+        )
+        .then(async (res) => {
+          const activation = new Activation({
+            linkId: res.data.id,
+            accountId: res.data.accountId,
+            groupId: res.data.groupId,
+            firstName: res.data.firstName,
+            lastName: res.data.lastName,
+            activationLimit: res.data.activationLimit,
+            activationCount: res.data.activationCount,
+            licenseJwt: res.data.licenseJwt,
+            shortToken: res.data.shortToken,
+            created: res.data.created,
+            modified: res.data.modified,
+          });
+
+          await activation.save((err) => {
+            if (err) {
+              console.log("err when save activation", err);
+            } else {
+              links.push(res.data.shortToken);
+            }
+          });
+        })
+        .catch((err) => {
+          console.log("err in get active link", err);
+        });
     }
   }
 
   return links;
-}
+};
 
 const returnActiveAppMail = async (full_name, email, phone, links) => {
   const emailData = {
@@ -277,15 +304,17 @@ const returnActiveAppMail = async (full_name, email, phone, links) => {
                   <li>Họ và Tên : ${full_name}</li>
                   <li>Email : ${email}</li>
                   <li>Số điện thoại : ${phone}</li>
-                  <li>Link giới thiệu : Vui lòng đăng nhập vào hệ thống để tạo <a href="${process.env.CLIENT_URL}/login">link giới thiệu</a></li>
+                  <li>Link giới thiệu : Vui lòng đăng nhập vào hệ thống để tạo <a href="${
+                    process.env.CLIENT_URL
+                  }/login">link giới thiệu</a></li>
                 </ul>
               <h1>ĐƯỜNG DẪN KÍCH HOẠT AIPS APP</h1>
               <ul>
-              ${
-                links.map((link,index) => {
-                  return `<li>link ${index+1} : <a href="https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}">nhấp vào đây để active</a></li>`
-                })
-                }
+              ${links.map((link, index) => {
+                return `<li>link ${
+                  index + 1
+                } : <a href="https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}">nhấp vào đây để active</a></li>`;
+              })}
               </ul>
               <hr />
               <p>Mọi thông tin xin vui lòng liên hệ</p>
@@ -588,9 +617,9 @@ exports.activationController = async (req, res) => {
   const { token } = req.body;
 
   if (token) {
-    const transaction = Transaction.findOne({token}).exec();
+    const transaction = Transaction.findOne({ token }).exec();
 
-    if(!transaction) {
+    if (!transaction) {
       console.log("Activation error 1");
       res.json({
         status: 401,
@@ -630,7 +659,7 @@ exports.activationController = async (req, res) => {
               buy_package,
               id_time,
             } = jwt.decode(token);
-  
+
             bcrypt.genSalt(saltRounds, function (err, salt) {
               bcrypt.hash(password, salt, async function (err, hash) {
                 if (err) {
@@ -644,7 +673,7 @@ exports.activationController = async (req, res) => {
                   const userOfInvite = await User.findOne({
                     _id: invite_code,
                   }).exec();
-  
+
                   const listAva = [
                     "similiquealiasoccaecati",
                     "molestiaeimpeditdolor",
@@ -681,7 +710,7 @@ exports.activationController = async (req, res) => {
                     gender,
                     id_time,
                   });
-  
+
                   user.save(function (err) {
                     if (err) {
                       console.log(err);
@@ -696,7 +725,7 @@ exports.activationController = async (req, res) => {
                         parent: user._id,
                         buy_package,
                       });
-  
+
                       newTree.save(async function (err) {
                         if (err) {
                           return res.json({
@@ -708,12 +737,12 @@ exports.activationController = async (req, res) => {
                         } else {
                           const parentEmail = userOfInvite.email;
                           const parentName = userOfInvite.full_name;
-  
+
                           const oneYearFromNow = new Date();
                           oneYearFromNow.setFullYear(
                             oneYearFromNow.getFullYear() + 1
                           );
-  
+
                           await User.findOneAndUpdate(
                             { _id: invite_code },
                             {
@@ -723,14 +752,14 @@ exports.activationController = async (req, res) => {
                                   : userOfInvite.amount + 160,
                             }
                           ).exec();
-  
+
                           await updateParent(invite_code, buy_package);
                           await returnCommission(
                             invite_code,
                             process.env.COMMISSION,
                             full_name
                           );
-  
+
                           if (groupNumber === "1") {
                             Tree.findOneAndUpdate(
                               {
@@ -748,18 +777,35 @@ exports.activationController = async (req, res) => {
                                     message: "Thêm id vào cha thất bại",
                                   });
                                 } else {
-                                  const links = await getActiveLink(email, full_name, phone, buy_package);
-                                  if(links.length === 0) {
+                                  const links = await getActiveLink(
+                                    email,
+                                    full_name,
+                                    phone,
+                                    buy_package
+                                  );
+                                  if (links.length === 0) {
                                     res.json({
                                       status: 404,
                                       message: `Lấy link active thất bại! Vui lòng thử lại sau`,
-                                      errors: []
-                                    })
+                                      errors: [],
+                                    });
                                   } else {
                                     console.log("links", links);
-                                    returnActiveAppMail(full_name, email, phone, links);
-                                    thankMail(parentName, parentEmail, full_name);
-                                    await Transaction.findOneAndUpdate({token}, {token: ""});
+                                    returnActiveAppMail(
+                                      full_name,
+                                      email,
+                                      phone,
+                                      links
+                                    );
+                                    thankMail(
+                                      parentName,
+                                      parentEmail,
+                                      full_name
+                                    );
+                                    await Transaction.findOneAndUpdate(
+                                      { token },
+                                      { token: "" }
+                                    );
                                     res.json({
                                       status: 200,
                                       message:
@@ -785,16 +831,30 @@ exports.activationController = async (req, res) => {
                                     message: "Thêm id vào cha thất bại",
                                   });
                                 } else {
-                                  const links = await getActiveLink(email, full_name, phone, buy_package);
-                                  if(links.length === 0) {
+                                  const links = await getActiveLink(
+                                    email,
+                                    full_name,
+                                    phone,
+                                    buy_package
+                                  );
+                                  if (links.length === 0) {
                                     res.json({
                                       status: 404,
                                       message: `Lấy link active thất bại! Vui lòng thử lại sau`,
-                                      errors: []
-                                    })
+                                      errors: [],
+                                    });
                                   } else {
-                                    returnActiveAppMail(full_name, email, phone, links);
-                                    thankMail(parentName, parentEmail, full_name);
+                                    returnActiveAppMail(
+                                      full_name,
+                                      email,
+                                      phone,
+                                      links
+                                    );
+                                    thankMail(
+                                      parentName,
+                                      parentEmail,
+                                      full_name
+                                    );
                                     res.json({
                                       status: 200,
                                       message:
@@ -820,16 +880,30 @@ exports.activationController = async (req, res) => {
                                     message: "Thêm id vào cha thất bại",
                                   });
                                 } else {
-                                  const links = await getActiveLink(email, full_name, phone, buy_package);
-                                  if(links.length === 0) {
+                                  const links = await getActiveLink(
+                                    email,
+                                    full_name,
+                                    phone,
+                                    buy_package
+                                  );
+                                  if (links.length === 0) {
                                     res.json({
                                       status: 404,
                                       message: `Lấy link active thất bại! Vui lòng thử lại sau`,
-                                      errors: []
-                                    })
+                                      errors: [],
+                                    });
                                   } else {
-                                    returnActiveAppMail(full_name, email, phone, links);
-                                    thankMail(parentName, parentEmail, full_name);
+                                    returnActiveAppMail(
+                                      full_name,
+                                      email,
+                                      phone,
+                                      links
+                                    );
+                                    thankMail(
+                                      parentName,
+                                      parentEmail,
+                                      full_name
+                                    );
                                     res.json({
                                       status: 200,
                                       message:
@@ -1290,252 +1364,237 @@ exports.resetPasswordController = async (req, res) => {
 };
 
 exports.addDemoData = async (req, res) => {
-//   const {
-//     full_name,
-//     email,
-//     invite_code,
-//     password,
-//     buy_package,
-//     group,
-//     phone,
-//     payment_method,
-//     created_by,
-//   } = req.query;
-
-//   bcrypt.genSalt(saltRounds, function (err, salt) {
-//     bcrypt.hash(password, salt, async function (err, hash) {
-//       if (err) {
-//         console.log(err);
-//         return res.json(err);
-//       } else {
-//         const userOfDonateSales = await User.findOne({
-//           phone: invite_code,
-//         }).exec();
-
-//         const listAva = [
-//           "similiquealiasoccaecati",
-//           "molestiaeimpeditdolor",
-//           "voluptatesabinventore",
-//           "quinemoitaque",
-//           "ametenimomnis",
-//           "aliquamprovidenthic",
-//           "recusandaetemporeaut",
-//           "suntveritatisconsequatur",
-//           "expeditaaccusamustotam",
-//           "doloresutqui",
-//         ];
-//         const ranNum = Math.floor(Math.random() * 10);
-//         const url = `${listAva[ranNum]}.png`;
-//         const user = new User({
-//           full_name,
-//           email,
-//           hashed_password: hash,
-//           complete_profile_level: 1,
-//           status: "success",
-//           avatar: `https://robohash.org/${url}?size=100x100&set=set1`,
-//           phone,
-//           buy_package,
-//           groupNumber: group,
-//           parentId: userOfDonateSales._id,
-//           created_time: new Date(),
-//         });
-
-//         const oneYearFromNow = new Date();
-//         oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-
-//         const transaction = new Transaction({
-//           status: "success",
-//           approved_by: "admin",
-//           payment_method,
-//           token: "",
-//           created_time: new Date(),
-//           created_by,
-//           email,
-//           phone,
-//           approved_time: "",
-//           expired_time: oneYearFromNow,
-//           buy_package,
-//         });
-
-//         await transaction.save(function (err) {
-//           if (err) {
-//             console.log("error when save transaction", err);
-//           }
-//         });
-
-//         await user.save(function (err) {
-//           if (err) {
-//             console.log(err);
-//             return res.json({
-//               success: false,
-//               errors: [
-//                 {
-//                   label: "save user error",
-//                   err_message: "save user error",
-//                 },
-//               ],
-//             });
-//           } else {
-//             const newTree = new Tree({
-//               parent: user._id,
-//               buy_package,
-//             });
-
-//             newTree.save(async function (err) {
-//               if (err) {
-//                 res.json({
-//                   success: false,
-//                   errors: [
-//                     {
-//                       label: "save tree error",
-//                       err_message: "Lỗi khi lưu cây",
-//                     },
-//                   ],
-//                 });
-//               } else {
-//                 const parentEmail = userOfDonateSales.email;
-//                 const parentName = userOfDonateSales.full_name;
-
-//                 if (group === "1") {
-//                   Tree.findOneAndUpdate(
-//                     {
-//                       parent: userOfDonateSales._id,
-//                     },
-//                     {
-//                       $push: { group1: user._id },
-//                     },
-//                     function (err) {
-//                       if (err) {
-//                         console.log("ko tim thấy invite code");
-//                         res.json({
-//                           success: false,
-//                           errors: [
-//                             {
-//                               label: "save user error",
-//                               err_message: "save user error",
-//                             },
-//                           ],
-//                         });
-//                       } else {
-//                         const links = await getActiveLink(email, full_name, phone)
-//                         returnActiveAppMail(full_name, email, phone);
-//                         thankMail(parentName, parentEmail, full_name);
-//                         res.json({
-//                           success: true,
-//                           message:
-//                             "🎉 Đăng ký thành công, Kiểm tra Email để được hướng dẫn đăng nhập",
-//                         });
-//                       }
-//                     }
-//                   );
-//                 } else if (group === "2") {
-//                   Tree.findOneAndUpdate(
-//                     { parent: userOfDonateSales._id },
-//                     {
-//                       $push: { group2: user._id },
-//                     },
-//                     function (err) {
-//                       if (err) {
-//                         console.log("ko tim thấy invite code");
-//                         res.json({
-//                           success: false,
-//                           errors: [
-//                             {
-//                               label: "save user error",
-//                               err_message: "save user error",
-//                             },
-//                           ],
-//                         });
-//                       } else {
-//                         const links = await getActiveLink(email, full_name, phone)
-//                         returnActiveAppMail(full_name, email, phone);
-//                         thankMail(parentName, parentEmail, full_name);
-//                         res.json({
-//                           success: true,
-//                           message:
-//                             "🎉 Đăng ký thành công, Kiểm tra Email để được hướng dẫn đăng nhập",
-//                         });
-//                       }
-//                     }
-//                   );
-//                 } else if (group === "3") {
-//                   Tree.findOneAndUpdate(
-//                     { parent: userOfDonateSales._id },
-//                     {
-//                       $push: { group3: user._id },
-//                     },
-//                     function (err) {
-//                       if (err) {
-//                         console.log("ko tim thấy invite code");
-//                         res.json({
-//                           success: false,
-//                           errors: [
-//                             {
-//                               label: "save user error",
-//                               err_message: "save user error",
-//                             },
-//                           ],
-//                         });
-//                       } else {
-//                         const links = await getActiveLink(email, full_name, phone)
-//                         returnActiveAppMail(full_name, email, phone);
-//                         thankMail(parentName, parentEmail, full_name);
-//                         res.json({
-//                           success: true,
-//                           message:
-//                             "🎉 Đăng ký thành công, Kiểm tra Email để được hướng dẫn đăng nhập",
-//                         });
-//                       }
-//                     }
-//                   );
-//                 } else {
-//                   return res.json({
-//                     success: false,
-//                     errors: [
-//                       {
-//                         label: "error group",
-//                         err_message: "Nhóm không phù hợp.Vui lòng thử lại",
-//                       },
-//                     ],
-//                   });
-//                 }
-//               }
-//             });
-//           }
-//         });
-
-//         await User.findOneAndUpdate(
-//           { phone: invite_code },
-//           {
-//             amount:
-//               buy_package === "1"
-//                 ? userOfDonateSales.amount + 40
-//                 : userOfDonateSales.amount + 160,
-//           }
-//         );
-
-//         await updateParent(userOfDonateSales, buy_package);
-//         const qualified =
-//           userOfDonateSales.complete_profile_level !== 1 ? true : false;
-//         await returnCommission(
-//           userOfDonateSales._id,
-//           process.env.COMMISSION,
-//           full_name,
-//           "Chuyển khoản",
-//           qualified
-//         );
-//         // await saveExtension()
-//       }
-//     });
-//   });
+  //   const {
+  //     full_name,
+  //     email,
+  //     invite_code,
+  //     password,
+  //     buy_package,
+  //     group,
+  //     phone,
+  //     payment_method,
+  //     created_by,
+  //   } = req.query;
+  //   bcrypt.genSalt(saltRounds, function (err, salt) {
+  //     bcrypt.hash(password, salt, async function (err, hash) {
+  //       if (err) {
+  //         console.log(err);
+  //         return res.json(err);
+  //       } else {
+  //         const userOfDonateSales = await User.findOne({
+  //           phone: invite_code,
+  //         }).exec();
+  //         const listAva = [
+  //           "similiquealiasoccaecati",
+  //           "molestiaeimpeditdolor",
+  //           "voluptatesabinventore",
+  //           "quinemoitaque",
+  //           "ametenimomnis",
+  //           "aliquamprovidenthic",
+  //           "recusandaetemporeaut",
+  //           "suntveritatisconsequatur",
+  //           "expeditaaccusamustotam",
+  //           "doloresutqui",
+  //         ];
+  //         const ranNum = Math.floor(Math.random() * 10);
+  //         const url = `${listAva[ranNum]}.png`;
+  //         const user = new User({
+  //           full_name,
+  //           email,
+  //           hashed_password: hash,
+  //           complete_profile_level: 1,
+  //           status: "success",
+  //           avatar: `https://robohash.org/${url}?size=100x100&set=set1`,
+  //           phone,
+  //           buy_package,
+  //           groupNumber: group,
+  //           parentId: userOfDonateSales._id,
+  //           created_time: new Date(),
+  //         });
+  //         const oneYearFromNow = new Date();
+  //         oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+  //         const transaction = new Transaction({
+  //           status: "success",
+  //           approved_by: "admin",
+  //           payment_method,
+  //           token: "",
+  //           created_time: new Date(),
+  //           created_by,
+  //           email,
+  //           phone,
+  //           approved_time: "",
+  //           expired_time: oneYearFromNow,
+  //           buy_package,
+  //         });
+  //         await transaction.save(function (err) {
+  //           if (err) {
+  //             console.log("error when save transaction", err);
+  //           }
+  //         });
+  //         await user.save(function (err) {
+  //           if (err) {
+  //             console.log(err);
+  //             return res.json({
+  //               success: false,
+  //               errors: [
+  //                 {
+  //                   label: "save user error",
+  //                   err_message: "save user error",
+  //                 },
+  //               ],
+  //             });
+  //           } else {
+  //             const newTree = new Tree({
+  //               parent: user._id,
+  //               buy_package,
+  //             });
+  //             newTree.save(async function (err) {
+  //               if (err) {
+  //                 res.json({
+  //                   success: false,
+  //                   errors: [
+  //                     {
+  //                       label: "save tree error",
+  //                       err_message: "Lỗi khi lưu cây",
+  //                     },
+  //                   ],
+  //                 });
+  //               } else {
+  //                 const parentEmail = userOfDonateSales.email;
+  //                 const parentName = userOfDonateSales.full_name;
+  //                 if (group === "1") {
+  //                   Tree.findOneAndUpdate(
+  //                     {
+  //                       parent: userOfDonateSales._id,
+  //                     },
+  //                     {
+  //                       $push: { group1: user._id },
+  //                     },
+  //                     function (err) {
+  //                       if (err) {
+  //                         console.log("ko tim thấy invite code");
+  //                         res.json({
+  //                           success: false,
+  //                           errors: [
+  //                             {
+  //                               label: "save user error",
+  //                               err_message: "save user error",
+  //                             },
+  //                           ],
+  //                         });
+  //                       } else {
+  //                         const links = await getActiveLink(email, full_name, phone)
+  //                         returnActiveAppMail(full_name, email, phone);
+  //                         thankMail(parentName, parentEmail, full_name);
+  //                         res.json({
+  //                           success: true,
+  //                           message:
+  //                             "🎉 Đăng ký thành công, Kiểm tra Email để được hướng dẫn đăng nhập",
+  //                         });
+  //                       }
+  //                     }
+  //                   );
+  //                 } else if (group === "2") {
+  //                   Tree.findOneAndUpdate(
+  //                     { parent: userOfDonateSales._id },
+  //                     {
+  //                       $push: { group2: user._id },
+  //                     },
+  //                     function (err) {
+  //                       if (err) {
+  //                         console.log("ko tim thấy invite code");
+  //                         res.json({
+  //                           success: false,
+  //                           errors: [
+  //                             {
+  //                               label: "save user error",
+  //                               err_message: "save user error",
+  //                             },
+  //                           ],
+  //                         });
+  //                       } else {
+  //                         const links = await getActiveLink(email, full_name, phone)
+  //                         returnActiveAppMail(full_name, email, phone);
+  //                         thankMail(parentName, parentEmail, full_name);
+  //                         res.json({
+  //                           success: true,
+  //                           message:
+  //                             "🎉 Đăng ký thành công, Kiểm tra Email để được hướng dẫn đăng nhập",
+  //                         });
+  //                       }
+  //                     }
+  //                   );
+  //                 } else if (group === "3") {
+  //                   Tree.findOneAndUpdate(
+  //                     { parent: userOfDonateSales._id },
+  //                     {
+  //                       $push: { group3: user._id },
+  //                     },
+  //                     function (err) {
+  //                       if (err) {
+  //                         console.log("ko tim thấy invite code");
+  //                         res.json({
+  //                           success: false,
+  //                           errors: [
+  //                             {
+  //                               label: "save user error",
+  //                               err_message: "save user error",
+  //                             },
+  //                           ],
+  //                         });
+  //                       } else {
+  //                         const links = await getActiveLink(email, full_name, phone)
+  //                         returnActiveAppMail(full_name, email, phone);
+  //                         thankMail(parentName, parentEmail, full_name);
+  //                         res.json({
+  //                           success: true,
+  //                           message:
+  //                             "🎉 Đăng ký thành công, Kiểm tra Email để được hướng dẫn đăng nhập",
+  //                         });
+  //                       }
+  //                     }
+  //                   );
+  //                 } else {
+  //                   return res.json({
+  //                     success: false,
+  //                     errors: [
+  //                       {
+  //                         label: "error group",
+  //                         err_message: "Nhóm không phù hợp.Vui lòng thử lại",
+  //                       },
+  //                     ],
+  //                   });
+  //                 }
+  //               }
+  //             });
+  //           }
+  //         });
+  //         await User.findOneAndUpdate(
+  //           { phone: invite_code },
+  //           {
+  //             amount:
+  //               buy_package === "1"
+  //                 ? userOfDonateSales.amount + 40
+  //                 : userOfDonateSales.amount + 160,
+  //           }
+  //         );
+  //         await updateParent(userOfDonateSales, buy_package);
+  //         const qualified =
+  //           userOfDonateSales.complete_profile_level !== 1 ? true : false;
+  //         await returnCommission(
+  //           userOfDonateSales._id,
+  //           process.env.COMMISSION,
+  //           full_name,
+  //           "Chuyển khoản",
+  //           qualified
+  //         );
+  //         // await saveExtension()
+  //       }
+  //     });
+  //   });
 };
 
-const returnCommission = async (
-  receive_mem,
-  amount,
-  join_mem,
-  qualified
-) => {
+const returnCommission = async (receive_mem, amount, join_mem, qualified) => {
   const commission = new Commission({
     receive_mem,
     amount,
