@@ -27,6 +27,15 @@ const comSchema = new mongoose.Schema(
     qualified : {
         type: Boolean,
         default: false
+    },
+    bank_account : {
+        type: String,
+    },
+    bank : {
+        type: String,
+    },
+    bank_name : {
+        type: String,
     }
   }
 );

@@ -74,8 +74,13 @@ exports.checkout = async (req, res) => {
             { email },
             { payment_method }
           ).exec();
-          res.redirect(checkoutUrl.href);
-          res.end();
+          res.json({
+            status: 200,
+            data: {
+              checkoutUrl: checkoutUrl.href,
+              payment_method
+            }
+          });
         })
         .catch((err) => {
           res.send(err.message);
@@ -138,7 +143,6 @@ exports.callback = async (req, res) => {
       const orderId = res.locals.orderId;
       const price = res.locals.price;
       const message = res.locals.message;
-      console.log("email",res.locals.email);
       if (isSucceed) {
         const trans = await Transaction.findOne({ email: res.locals.email }).exec();
         const { token, email, created_by, package_buy, phone } = trans;
@@ -497,7 +501,7 @@ exports.callback = async (req, res) => {
         sgMail.send(emailData, async (error, result) => {
           if (error) {
             console.log(error.response.body);
-            res.status(400).json({
+            return res.status(400).json({
               success: false,
               errors: [
                 {
@@ -513,20 +517,21 @@ exports.callback = async (req, res) => {
               {
                 status: "success",
                 approved_time: new Date().toLocaleString("vi", {
-                  timeZone: "Asia/Ho_Chi_Minh",
-                  approved_by: "auto",
+                  timeZone: "Asia/Ho_Chi_Minh"
                 }),
+                approved_by: "auto",
                 orderId,
-                amount: price
+                amount: price,
+                token: ""
               }
             ).exec();
           }
         });
-        res.redirect(
+        return res.redirect(
           `${process.env.CLIENT_URL}/pay-success/${isSucceed}/${title}/${email}/${orderId}/${price}/${message}`
         );
       } else {
-        `${process.env.CLIENT_URL}/pay-success/${isSucceed}/${title}/${email}/${orderId}/${price}/${message}`
+        return res.redirect(`${process.env.CLIENT_URL}/pay-success/${isSucceed}/${title}/${email}/${orderId}/${price}/${message}`);
       }
     });
   } else {

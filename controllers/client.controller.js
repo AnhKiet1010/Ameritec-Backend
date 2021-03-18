@@ -15,137 +15,155 @@ exports.dashboard = async (req, res) => {
   const { id } = req.params;
   const user = await User.findOne({ _id: id }).exec();
 
-  var targetNumber;
-  var countLevel;
-  switch (user.level) {
-    case 0:
-      targetNumber = process.env.STEP1_NUMBER;
-      countLevel = 0;
-      break;
-    case 1:
-      targetNumber = process.env.STEP2_NUMBER;
-      countLevel = 1;
-      break;
-    case 2:
-      targetNumber = process.env.STEP3_NUMBER;
-      countLevel = 2;
-      break;
-    case 3:
-      targetNumber = process.env.STEP4_NUMBER;
-      countLevel = 3;
-      break;
-    case 4:
-      targetNumber = process.env.STEP5_NUMBER;
-      countLevel = 4;
-      break;
-    case 5:
-      targetNumber = process.env.STEP6_NUMBER;
-      countLevel = 5;
-      break;
-    default:
-      targetNumber = 0;
-      countLevel = 0;
+  if(user.be_member) {
+    var targetNumber;
+    var countLevel;
+    switch (user.level) {
+      case 0:
+        targetNumber = process.env.STEP1_NUMBER;
+        countLevel = 0;
+        break;
+      case 1:
+        targetNumber = process.env.STEP2_NUMBER;
+        countLevel = 1;
+        break;
+      case 2:
+        targetNumber = process.env.STEP3_NUMBER;
+        countLevel = 2;
+        break;
+      case 3:
+        targetNumber = process.env.STEP4_NUMBER;
+        countLevel = 3;
+        break;
+      case 4:
+        targetNumber = process.env.STEP5_NUMBER;
+        countLevel = 4;
+        break;
+      case 5:
+        targetNumber = process.env.STEP6_NUMBER;
+        countLevel = 5;
+        break;
+      default:
+        targetNumber = 0;
+        countLevel = 0;
+    }
+    const treeOfUser = await Tree.findOne({ parent: id })
+      .select("group1 group2 group3")
+      .exec();
+    const totalChildMemberGroup1 = await countTotalChildMemberForLevel(
+      [...treeOfUser.group1],
+      0,
+      countLevel
+    );
+    const totalChildMemberGroup2 = await countTotalChildMemberForLevel(
+      [...treeOfUser.group2],
+      0,
+      countLevel
+    );
+    const totalChildMemberGroup3 = await countTotalChildMemberForLevel(
+      [...treeOfUser.group3],
+      0,
+      countLevel
+    );
+    const totalPersonPackage = await countTotalPersonPackage(
+      [...treeOfUser.group1, ...treeOfUser.group2, ...treeOfUser.group3],
+      0,
+      countLevel
+    );
+    res.json({
+      status: 200,
+      data: {
+        user,
+        totalGroup1: totalChildMemberGroup1,
+        totalGroup2: totalChildMemberGroup2,
+        totalGroup3: totalChildMemberGroup3,
+        totalPersonPackage,
+        targetNumber: parseInt(targetNumber),
+      },
+      errors: [],
+    });
+  } else {
+    res.json({
+      status: 203,
+      data: {},
+      errors: [],
+      message: "Bạn không đủ điều kiện để xem trang này! Vui lòng nâng cấp tài khoản",
+    });
   }
-  const treeOfUser = await Tree.findOne({ parent: id })
-    .select("group1 group2 group3")
-    .exec();
-  const totalChildMemberGroup1 = await countTotalChildMemberForLevel(
-    [...treeOfUser.group1],
-    0,
-    countLevel
-  );
-  const totalChildMemberGroup2 = await countTotalChildMemberForLevel(
-    [...treeOfUser.group2],
-    0,
-    countLevel
-  );
-  const totalChildMemberGroup3 = await countTotalChildMemberForLevel(
-    [...treeOfUser.group3],
-    0,
-    countLevel
-  );
-  const totalPersonPackage = await countTotalPersonPackage(
-    [...treeOfUser.group1, ...treeOfUser.group2, ...treeOfUser.group3],
-    0,
-    countLevel
-  );
-  console.log("Nhóm 1", totalChildMemberGroup1);
-  console.log("Nhóm 2", totalChildMemberGroup2);
-  console.log("Nhóm 3", totalChildMemberGroup3);
-  res.json({
-    status: 200,
-    data: {
-      user,
-      totalGroup1: totalChildMemberGroup1,
-      totalGroup2: totalChildMemberGroup2,
-      totalGroup3: totalChildMemberGroup3,
-      totalPersonPackage,
-      targetNumber: parseInt(targetNumber),
-    },
-    errors: [],
-  });
 };
 
 exports.tree = async (req, res) => {
   const { id, search } = req.params;
 
-  const searchUser = await User.findOne({ _id: search }).exec();
+  const user = await User.findOne({ _id: id }).exec();
 
-  const objBranch = await Tree.findOne({ parent: search })
-    .select("group1 group2 group3")
-    .exec();
-  const { group1, group2, group3 } = objBranch;
-  const arrObjectOfSearchUsers = [...group1, ...group2, ...group3];
-
-  const objBranchChild = await Tree.findOne({ parent: id })
-    .select("group1 group2 group3")
-    .exec();
-  const listChildNameBefore = await getFullChildren(
-    [
-      ...objBranchChild.group1,
-      ...objBranchChild.group2,
-      ...objBranchChild.group3,
-    ],
-    []
-  );
-
-  const listChildName = listChildNameBefore.map((child) => {
-    return { value: child._id, label: child.full_name };
-  });
-
-  const result1 = await getData(group1);
-  const result2 = await getData(group2);
-  const result3 = await getData(group3);
-
-  const root = [];
-  root.push({
-    _id: searchUser._id,
-    avatar: searchUser.avatar,
-    full_name: searchUser.full_name,
-    countChild: await countTotalChildMember(arrObjectOfSearchUsers),
-    level: searchUser.level,
-    child1: {
-      arr: [...result1],
-      countChild: await countTotalChildMember(result1),
-    },
-    child2: {
-      arr: [...result2],
-      countChild: await countTotalChildMember(result2),
-    },
-    child3: {
-      arr: [...result3],
-      countChild: await countTotalChildMember(result3),
-    },
-  });
-  res.json({
-    status: 200,
-    data: {
-      listChildName,
-      group: root,
-    },
-    errors: [],
-    message: "",
-  });
+  if(user.be_member) {
+    
+      const searchUser = await User.findOne({ _id: search }).exec();
+    
+      const objBranch = await Tree.findOne({ parent: search })
+        .select("group1 group2 group3")
+        .exec();
+      const { group1, group2, group3 } = objBranch;
+      const arrObjectOfSearchUsers = [...group1, ...group2, ...group3];
+    
+      const objBranchChild = await Tree.findOne({ parent: id })
+        .select("group1 group2 group3")
+        .exec();
+      const listChildNameBefore = await getFullChildren(
+        [
+          ...objBranchChild.group1,
+          ...objBranchChild.group2,
+          ...objBranchChild.group3,
+        ],
+        []
+      );
+    
+      const listChildName = listChildNameBefore.map((child) => {
+        return { value: child._id, label: child.full_name };
+      });
+    
+      const result1 = await getData(group1);
+      const result2 = await getData(group2);
+      const result3 = await getData(group3);
+    
+      const root = [];
+      root.push({
+        _id: searchUser._id,
+        avatar: searchUser.avatar,
+        full_name: searchUser.full_name,
+        countChild: await countTotalChildMember(arrObjectOfSearchUsers),
+        level: searchUser.level,
+        child1: {
+          arr: [...result1],
+          countChild: await countTotalChildMember(result1),
+        },
+        child2: {
+          arr: [...result2],
+          countChild: await countTotalChildMember(result2),
+        },
+        child3: {
+          arr: [...result3],
+          countChild: await countTotalChildMember(result3),
+        },
+      });
+      res.json({
+        status: 200,
+        data: {
+          listChildName,
+          group: root,
+        },
+        errors: [],
+        message: "",
+      });
+  } else {
+    res.json({
+      status: 203,
+      data: {},
+      errors: [],
+      message: "Bạn không đủ điều kiện để xem trang này! Vui lòng nâng cấp tài khoản",
+    });
+  }
 };
 
 exports.profile = async (req, res) => {
@@ -401,31 +419,42 @@ exports.editProfile = async (req, res) => {
 exports.inviteUrl = async (req, res) => {
   const { id } = req.body;
 
-  const objBranchChild = await Tree.findOne({ parent: id })
-    .select("group1 group2 group3")
-    .exec();
+  const user = await User.findOne({ _id: id }).exec();
 
-  const listChildNameBefore = await getFullChildren(
-    [
-      ...objBranchChild.group1,
-      ...objBranchChild.group2,
-      ...objBranchChild.group3,
-    ],
-    []
-  );
-
-  const listChildName = [{id: "", value: ""}, ...listChildNameBefore.map((child) => {
-    return { value: child._id, label: child.full_name };
-  })];
-
-  res.json({
-    status: 200,
-    data: {
-      listChildName
-    },
-    message: "",
-    errors: []
-  });
+  if(user.be_member) {
+    const objBranchChild = await Tree.findOne({ parent: id })
+      .select("group1 group2 group3")
+      .exec();
+  
+    const listChildNameBefore = await getFullChildren(
+      [
+        ...objBranchChild.group1,
+        ...objBranchChild.group2,
+        ...objBranchChild.group3,
+      ],
+      []
+    );
+  
+    const listChildName = [{id: "", value: ""}, ...listChildNameBefore.map((child) => {
+      return { value: child._id, label: child.full_name };
+    })];
+  
+    res.json({
+      status: 200,
+      data: {
+        listChildName
+      },
+      message: "",
+      errors: []
+    });
+  } else {
+    res.json({
+      status: 203,
+      data: {},
+      errors: [],
+      message: "Bạn không đủ điều kiện để xem trang này! Vui lòng nâng cấp tài khoản",
+    });
+  }
 }
 
 exports.transaction = async (req,res) => {

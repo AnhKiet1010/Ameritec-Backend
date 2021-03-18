@@ -362,6 +362,11 @@ exports.thankMail = (parentName, parentEmail, full_name) => {
           <head>
           <meta name="format-detection" content="telephone=no">
           <meta name="format-detection" content="email=no">
+          <style>
+            ul {
+              list-type-style: none;
+            }
+          </style>
           </head>
           <body>
               <h1>AMERITEC XIN CHÂN THÀNH CẢM ƠN</h1>

@@ -387,8 +387,10 @@ exports.activeTrans = async (req, res) => {
           status: "success",
           approved_time: new Date().toLocaleString("vi", {
             timeZone: "Asia/Ho_Chi_Minh",
-          approved_by: 'admin'
           }),
+          approved_by: 'admin',
+          token: "",
+          amount: process.env.PERSIONAL_PRICE,
         }
       ).exec();
       // res.json({

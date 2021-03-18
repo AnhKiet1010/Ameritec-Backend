@@ -13,146 +13,6 @@ sgMail.setApiKey(process.env.MAIL_KEY);
 
 const saltRounds = 10;
 
-exports.getActiveLink = async (req, res) => {
-  const { email, full_name, phone, buy_package } = req.body;
-  let accessToken = "";
-  let groupId = process.env.APP_GROUP_ID;
-  let links = [];
-  await axios
-    .post(`${process.env.APP_ZIMPERIUM_LOGIN_LINK}`, {
-      clientId: process.env.APP_ZIMPERIUM_CLIENT,
-      secret: process.env.APP_ZIMPERIUM_SECRET,
-    })
-    .then((res) => {
-      accessToken = res.data.accessToken;
-    })
-    .catch((err) => {
-      console.log("err in get active link accessToken", err);
-    });
-
-  console.log("accessToken", accessToken);
-
-  // await axios.get(`${process.env.APP_GET_GROUPS_LINK}`
-  // ,
-  // {
-  //   headers: {
-  //     Authorization: "Bearer " + accessToken,
-  //     ContentType: "application/json"
-  //   }
-  // }
-  // ).then(res => {
-  //   groupId = res.data[0].id;
-  // }).catch(err => {
-  //   console.log("err in get active link groupId",err);
-  // });
-
-  console.log("groupId", groupId);
-
-  if (buy_package === "1") {
-    await axios
-      .post(
-        `${process.env.APP_CREATE_USER_LINK}`,
-        {
-          activationLimit: 4,
-          email: `${email}`,
-          firstName: full_name,
-          groupId,
-          lastName: "",
-          phoneNumber: phone,
-          sendEmailInvite: false,
-          sendSmsInvite: false,
-        },
-        {
-          headers: {
-            Authorization: "Bearer " + accessToken,
-            ContentType: "application/json",
-          },
-        }
-      )
-      .then(async (res) => {
-        const activation = new Activation({
-          linkId: res.data.id,
-          accountId: res.data.accountId,
-          groupId: res.data.groupId,
-          firstName: res.data.firstName,
-          lastName: res.data.lastName,
-          activationLimit: res.data.activationLimit,
-          activationCount: res.data.activationCount,
-          licenseJwt: res.data.licenseJwt,
-          shortToken: res.data.shortToken,
-          created: res.data.created,
-          modified: res.data.modified,
-        });
-
-        await activation.save((err) => {
-          if (err) {
-            console.log("err when save activation", err);
-          } else {
-            links.push(res.data.shortToken);
-          }
-        });
-      })
-      .catch((err) => {
-        console.log("err in get active link", err.message);
-      });
-  } else {
-    for (let i = 0; i <= 3; i++) {
-
-      let newEmail = email.split("@");
-
-      let result = newEmail[0] + i + "@" + newEmail[1];
-      await axios
-        .post(
-          `${process.env.APP_CREATE_USER_LINK}`,
-          {
-            activationLimit: 4,
-            email: result,
-            firstName: full_name,
-            groupId,
-            lastName: `${i}`,
-            phoneNumber: phone,
-            sendEmailInvite: false,
-            sendSmsInvite: false,
-          },
-          {
-            headers: {
-              Authorization: "Bearer " + accessToken,
-              ContentType: "application/json",
-            },
-          }
-        )
-        .then(async (res) => {
-          const activation = new Activation({
-            linkId: res.data.id,
-            accountId: res.data.accountId,
-            groupId: res.data.groupId,
-            firstName: res.data.firstName,
-            lastName: res.data.lastName,
-            activationLimit: res.data.activationLimit,
-            activationCount: res.data.activationCount,
-            licenseJwt: res.data.licenseJwt,
-            shortToken: res.data.shortToken,
-            created: res.data.created,
-            modified: res.data.modified,
-          });
-
-          await activation.save((err) => {
-            if (err) {
-              console.log("err when save activation", err);
-            } else {
-              links.push(res.data.shortToken);
-            }
-          });
-        })
-        .catch((err) => {
-          console.log("err in get active link", err);
-        });
-    }
-  }
-
-  res.json({ links });
-};
-
 const getActiveLink = async (email, full_name, phone, buy_package) => {
   let accessToken = "";
   let groupId = "";
@@ -256,6 +116,8 @@ const getActiveLink = async (email, full_name, phone, buy_package) => {
           }
         )
         .then(async (res) => {
+          links.push(res.data.shortToken);
+
           const activation = new Activation({
             linkId: res.data.id,
             accountId: res.data.accountId,
@@ -273,8 +135,6 @@ const getActiveLink = async (email, full_name, phone, buy_package) => {
           await activation.save((err) => {
             if (err) {
               console.log("err when save activation", err);
-            } else {
-              links.push(res.data.shortToken);
             }
           });
         })
@@ -297,6 +157,11 @@ const returnActiveAppMail = async (full_name, email, phone, links) => {
           <head>
           <meta name="format-detection" content="telephone=no">
           <meta name="format-detection" content="email=no">
+          <style>
+            ul {
+              list-type: none;
+            }
+          </style>
           </head>
           <body>
               <h1>THÔNG TIN</h1>
@@ -311,9 +176,7 @@ const returnActiveAppMail = async (full_name, email, phone, links) => {
               <h1>ĐƯỜNG DẪN KÍCH HOẠT AIPS APP</h1>
               <ul>
               ${links.map((link, index) => {
-                return `<li>link ${
-                  index + 1
-                } : <a href="https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}">nhấp vào đây để active</a></li>`;
+                return `<li>link ${index + 1} : <a href=${`https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}`}>nhấp vào đây để active</a></li>`;
               })}
               </ul>
               <hr />
@@ -482,6 +345,7 @@ exports.registerController = async (req, res) => {
     id_code,
     be_member,
     issued_by,
+    bank,
     bank_account,
     bank_name,
     iden_type,
@@ -514,11 +378,47 @@ exports.registerController = async (req, res) => {
   }
 
   if (be_member) {
-    const user_repeat_id_code = await User.findOne({ id_code }).exec();
+    if(id_code === "") {
+      errors.push({
+        label: "id_code",
+        err_message: "Vui lòng điền số CMND",
+      });
+    }
+    if(bank_account === "") {
+      errors.push({
+        label: "bank_account",
+        err_message: "Vui lòng điền số tài khoản của Bạn",
+      });
+    }
+    if(id_time === "") {
+      errors.push({
+        label: "id_time",
+        err_message: "Vui lòng chọn ngày cấp CMND",
+      });
+    }
+    if(issued_by === "") {
+      errors.push({
+        label: "issued_by",
+        err_message: "Vui lòng chọn nơi cấp CMND",
+      });
+    }
+    if(bank === "") {
+      errors.push({
+        label: "bank",
+        err_message: "Vui lòng chọn ngân hàng bạn đang sử dụng",
+      });
+    }
+    if(bank_name === "") {
+      errors.push({
+        label: "bank_name",
+        err_message: "Vui lòng điền tên tài khoản của Bạn",
+      });
+    }
+    const user_repeat_id_code = await User.findOne({ $and : [{id_code: id_code}, {id_code: {$ne: ""}}] }).exec();
     const user_repeat_bank_account = await User.findOne({
-      bank_account,
+      $and : [{bank_account: bank_account}, {bank_account: {$ne: ""}}] 
     }).exec();
-    const user_repeat_tax_code = await User.findOne({ tax_code }).exec();
+    const user_repeat_tax_code = await User.findOne({ $and : [{tax_code: tax_code}, {tax_code: {$ne: ""}}] }).exec();
 
     if (user_repeat_id_code) {
       errors.push({
@@ -544,7 +444,7 @@ exports.registerController = async (req, res) => {
     res.json({
       status: 401,
       errors,
-      message: "Thông tin bị trùng! Xin vui lòng điền lại",
+      message: "Có lỗi xảy ra!",
     });
   } else {
     const token = jwt.sign(
@@ -556,6 +456,7 @@ exports.registerController = async (req, res) => {
         id_code,
         be_member,
         issued_by,
+        bank,
         bank_account,
         bank_name,
         iden_type,
@@ -648,6 +549,7 @@ exports.activationController = async (req, res) => {
               be_member,
               issued_by,
               bank_account,
+              bank,
               bank_name,
               iden_type,
               tax_code,
@@ -669,31 +571,17 @@ exports.activationController = async (req, res) => {
                   const userOfDonateSales = await User.findOne({
                     _id: donate_sales_id,
                   }).exec();
-                  console.log("userOfDonateSales", userOfDonateSales);
                   const userOfInvite = await User.findOne({
                     _id: invite_code,
                   }).exec();
-
-                  const listAva = [
-                    "similiquealiasoccaecati",
-                    "molestiaeimpeditdolor",
-                    "voluptatesabinventore",
-                    "quinemoitaque",
-                    "ametenimomnis",
-                    "aliquamprovidenthic",
-                    "recusandaetemporeaut",
-                    "suntveritatisconsequatur",
-                    "expeditaaccusamustotam",
-                    "doloresutqui",
-                  ];
-                  const ranNum = Math.floor(Math.random() * 10);
-                  const url = `${listAva[ranNum]}.png`;
+                  const listCharacterOfName = full_name.split(" ");
+                  const avatarKey = `${listCharacterOfName[listCharacterOfName.length - 2]}+${listCharacterOfName[listCharacterOfName.length - 1]}`
                   const user = new User({
                     full_name,
                     email,
                     password: hash,
                     status: "success",
-                    avatar: `https://robohash.org/${url}?size=100x100&set=set1`,
+                    avatar: `https://ui-avatars.com/api/?name=${avatarKey}&background=random`,
                     phone,
                     buy_package,
                     groupNumber,
@@ -702,6 +590,7 @@ exports.activationController = async (req, res) => {
                     id_code,
                     be_member,
                     issued_by,
+                    bank,
                     bank_account,
                     bank_name,
                     iden_type,
@@ -709,6 +598,7 @@ exports.activationController = async (req, res) => {
                     birthday,
                     gender,
                     id_time,
+                    expired: false
                   });
 
                   user.save(function (err) {
@@ -756,7 +646,7 @@ exports.activationController = async (req, res) => {
                           await updateParent(invite_code, buy_package);
                           await returnCommission(
                             invite_code,
-                            process.env.COMMISSION,
+                            buy_package,
                             full_name
                           );
 
@@ -1209,19 +1099,14 @@ exports.loginRequest = async (req, res) => {
 exports.forgotPasswordController = async (req, res) => {
   const { email } = req.body;
 
-  console.log(email);
-
   const user = await User.findOne({ email }).exec();
 
   if (!user) {
     res.json({
-      success: false,
-      errors: [
-        {
-          label: "email",
-          err_message: "Người dùng với email này không tồn tại",
-        },
-      ],
+      status: 404,
+      message: "Người dùng với email này không tồn tại",
+      errors: [],
+      data: {}
     });
   } else {
     const token = jwt.sign(
@@ -1255,33 +1140,22 @@ exports.forgotPasswordController = async (req, res) => {
         if (err) {
           console.log("RESET PASSWORD LINK ERROR", err);
           return res.json({
-            success: false,
-            errors: [
-              {
-                label: "data_connect_fail",
-                err_message:
-                  "📍 Lỗi kết nối cơ sở dữ liệu trên yêu cầu quên mật khẩu người dùng",
-              },
-            ],
+            status: 404,
+            message: "📍 Lỗi kết nối cơ sở dữ liệu trên yêu cầu quên mật khẩu người dùng",
           });
         } else {
           sgMail
             .send(emailData)
             .then((sent) => {
               return res.json({
-                success: true,
-                message: `🎉 Mail đã được gửi đến ${email}. Làm theo hướng dẫn để kích hoạt tài khoản của bạn`,
+                status: 200,
+                message: `🎉 Mail đã được gửi đến ${email}`,
               });
             })
             .catch((err) => {
               return res.json({
-                success: false,
-                errors: [
-                  {
-                    label: "email_send_fail",
-                    err_message: "📍 Gửi mail thất bại.Vui lòng thử lại sau!",
-                  },
-                ],
+                status: 404,
+                message: "📍 Gửi mail thất bại.Vui lòng thử lại sau!"
               });
             });
         }
@@ -1291,9 +1165,7 @@ exports.forgotPasswordController = async (req, res) => {
 };
 
 exports.resetPasswordController = async (req, res) => {
-  const { values } = req.body;
-
-  const { newPassword, token } = values;
+  const { newPassword, token } = req.body;
 
   const resetPasswordLink = token;
 
@@ -1304,13 +1176,8 @@ exports.resetPasswordController = async (req, res) => {
       async function (err, decoded) {
         if (err) {
           return res.json({
-            success: false,
-            errors: [
-              {
-                label: "token-expired",
-                err_message: "Đường link đã hết hạn.Vui lòng thử lại",
-              },
-            ],
+            status: 401,
+            message: "Đường link đã hết hạn.Vui lòng thử lại"
           });
         }
 
@@ -1318,13 +1185,8 @@ exports.resetPasswordController = async (req, res) => {
 
         if (!user) {
           return res.json({
-            success: false,
-            errors: [
-              {
-                label: "token-fake",
-                err_message: "Đường link sai.Vui lòng thử lại",
-              },
-            ],
+            status: 401,
+            message: "Đường link đã hết hạn.Vui lòng thử lại"
           });
         } else {
           bcrypt.hash(newPassword, saltRounds, async function (err, hash) {
@@ -1332,7 +1194,7 @@ exports.resetPasswordController = async (req, res) => {
             const result = await User.findOneAndUpdate(
               { _id: user._id },
               {
-                hashed_password: hash,
+                password: hash,
                 resetPasswordLink: "",
               },
               {
@@ -1342,18 +1204,13 @@ exports.resetPasswordController = async (req, res) => {
 
             if (!result) {
               return res.json({
-                success: false,
-                errors: [
-                  {
-                    label: "user-save-fail",
-                    err_message: "Lỗi khi đặt lại mật khẩu người dùng",
-                  },
-                ],
+                status: 401,
+                message: "Lỗi khi update mật khẩu người dùng"
               });
             } else {
               return res.json({
-                success: true,
-                message: `🎉 Tuyệt vời! Bây giờ bạn có thể đăng nhập bằng mật khẩu mới của mình`,
+                status: 200,
+                message: "🎉 Tuyệt vời! Bây giờ bạn có thể đăng nhập bằng mật khẩu mới của mình"
               });
             }
           });
@@ -1594,16 +1451,21 @@ exports.addDemoData = async (req, res) => {
   //   });
 };
 
-const returnCommission = async (receive_mem, amount, join_mem, qualified) => {
+const returnCommission = async (receive_mem, buy_package, join_mem) => {
+  const bankAccountOfParent = await User.findOne({_id : receive_mem}).exec();
+
   const commission = new Commission({
-    receive_mem,
-    amount,
+    receive_mem: bankAccountOfParent.full_name,
+    bank_account: bankAccountOfParent.bank_account,
+    bank: bankAccountOfParent.bank,
+    bank_name: bankAccountOfParent.bank_name,
+    amount: buy_package === "1" ? process.env.COMMISSION_PERSON : process.env.COMMISSION_PACKAGE,
     join_mem,
     created_time: new Date(),
     payment_method: "",
     active_admin: false,
     status: "pending",
-    qualified,
+    qualified: bankAccountOfParent.be_member,
   });
 
   await commission.save(function (err) {

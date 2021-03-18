@@ -16,10 +16,8 @@ exports.checkoutNganLuong = (req, res) => {
 	checkoutData.locale = checkoutData.locale === 'en' ? 'en' : 'vi';
 	checkoutData.paymentType = '1';
 	checkoutData.totalItem = '1';
-	console.log('checkoutData',checkoutData);
 
 	return nganluong.buildCheckoutUrl(checkoutData).then(checkoutUrl => {
-		console.log('checkoutUrl',checkoutUrl);
 		res.locals.checkoutUrl = checkoutUrl;
 		return checkoutUrl;
 	});

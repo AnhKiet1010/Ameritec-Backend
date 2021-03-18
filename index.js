@@ -7,6 +7,7 @@ const morgan = require("morgan");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const CronJob = require("cron").CronJob;
 
 const app = express();
 
@@ -49,6 +50,22 @@ app.use("/payment", paymentRouter);
 
 // Connect to database
 connectDB();
+
+const { deletePendingTransactions, setExpiredUser } = require("./config/cron");
+// const cron1 = CronJob.schedule("* 1 * * * *", deletePendingTransactions());
+const cron1 = new CronJob("*/5 * * * *", () => {
+  console.log("Running delete pending transaction");
+  deletePendingTransactions();
+});
+const cron2 = new CronJob("00 00 * * *", () => {
+  console.log("Running set expired user");
+  setExpiredUser();
+});
+// cron.schedule("00 00 00 * * *", setExpiredUser());
+
+cron1.start();
+cron2.start();
+
 
 app.use((req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");

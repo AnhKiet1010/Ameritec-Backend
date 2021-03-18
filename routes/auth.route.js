@@ -39,8 +39,7 @@ const {
     userInfoController,
     loginRequest,
     addDemoData,
-    checkLinkController,
-    getActiveLink
+    checkLinkController
 } = require('../controllers/auth.controller');
 
 // auth route
@@ -49,8 +48,6 @@ router.post('/activation', activationController);
 router.post('/login', loginController);
 router.post('/user-info', userInfoController);
 router.post('/checkLink', checkLinkController);
-
-router.post('/getActiveLink', getActiveLink);
 
 // login route
 router.get('/signInRequest', loginRequest);
