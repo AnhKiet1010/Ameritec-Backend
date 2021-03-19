@@ -498,7 +498,7 @@ exports.callback = async (req, res) => {
             `,
         };
 
-        sgMail.send(emailData, async (error, result) => {
+        await sgMail.send(emailData, async (error, result) => {
           if (error) {
             console.log(error.response.body);
             return res.status(400).json({
