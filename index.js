@@ -68,6 +68,16 @@ app.get('/send', function (req, res) {
       }           
   });
 });
+app.get('/list', function (req, res) {
+  ses.listVerifiedEmailAddresses(function(err, data) {
+      if(err) {
+          res.send(err);
+      } 
+      else {
+          res.send(data);
+      } 
+  });
+});
 // Verify email addresses.
 app.get('/verify', function (req, res) {
   var params = {
