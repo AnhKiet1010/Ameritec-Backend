@@ -120,15 +120,6 @@ const cron2 = new CronJob("00 00 * * *", () => {
 // cron1.start();
 cron2.start();
 
-
-app.use((req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.status(404).json({
-    success: false,
-    msg: "Page not founded",
-  });
-});
-
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
