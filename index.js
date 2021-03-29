@@ -9,8 +9,8 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const CronJob = require("cron").CronJob;
 const aws = require('aws-sdk');
-const email   = "ameritec110919@gmail.com";
-    
+const email = "ameritec110919@gmail.com";
+
 // Load your AWS credentials and try to instantiate the object.
 aws.config.loadFromPath(__dirname + '/config.json');
 
@@ -52,45 +52,46 @@ app.get('/send', function (req, res) {
   ses_mail = ses_mail + "Content-Disposition: attachment; filename=\"attachment.txt\"\n\n";
   ses_mail = ses_mail + "AWS Tutorial Series - Really cool file attachment!" + "\n\n";
   ses_mail = ses_mail + "--NextPart--";
-  
+
   var params = {
-      RawMessage: { Data: new Buffer(ses_mail) },
-      Destinations: [ "letrananhkiet1010@gmail.com" ],
-      Source: "'AWS Tutorial Series' <" + email + ">'"
+    RawMessage: { Data: new Buffer(ses_mail) },
+    Destinations: ["letrananhkiet1010@gmail.com"],
+    Source: "'AWS Tutorial Series' <" + email + ">'"
   };
-  
-  ses.sendRawEmail(params, function(err, data) {
-      if(err) {
-          res.send(err);
-      } 
-      else {
-          res.send(data);
-      }           
+
+  ses.sendRawEmail(params, function (err, data) {
+    if (err) {
+      res.send(err);
+    }
+    else {
+      res.send(data);
+    }
   });
 });
+
 app.get('/list', function (req, res) {
-  ses.listVerifiedEmailAddresses(function(err, data) {
-      if(err) {
-          res.send(err);
-      } 
-      else {
-          res.send(data);
-      } 
+  ses.listVerifiedEmailAddresses(function (err, data) {
+    if (err) {
+      res.send(err);
+    }
+    else {
+      res.send(data);
+    }
   });
 });
 // Verify email addresses.
 app.get('/verify', function (req, res) {
   var params = {
-      EmailAddress: email
+    EmailAddress: email
   };
-  
-  ses.verifyEmailAddress(params, function(err, data) {
-      if(err) {
-          res.send(err);
-      } 
-      else {
-          res.send(data);
-      } 
+
+  ses.verifyEmailAddress(params, function (err, data) {
+    if (err) {
+      res.send(err);
+    }
+    else {
+      res.send(data);
+    }
   });
 });
 
@@ -135,3 +136,6 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`App listening on port ${PORT}`);
 });
+
+app.use(express.static(__dirname + 'imgs'))
+

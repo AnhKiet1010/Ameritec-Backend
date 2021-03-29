@@ -105,12 +105,30 @@ const countTotalBusinessPackage = async () => {
 };
 
 exports.getDashboard = async (req, res) => {
-  const { id } = req.params;
-
+  //const { id } = req.params;
+  //try {
+  const filter = req.query.filterCode;
   const countPersonPackages = await countTotalPersonPackage();
   const countBusinessPackages = await countTotalBusinessPackage();
+  const date = new Date();
+  var listUser = await User.find({ role: { $ne: "admin" } }).sort({ _id: -1 }).exec();;
+  switch (filter) {
+    case '1':
+      listUser = await User.find({ $and: [{ role: { $ne: "admin" }, created_time: { "$gte": new Date(date.getFullYear(), date.getMonth(), date.getDate()) } }] }).sort({ _id: -1 }).exec();
+      break;
+    case '2':
 
-  const listUser = await User.find({role: {$ne: "admin"}}).sort({ _id: -1 }).exec();
+      listUser = await User.find({ $and: [{ role: { $ne: "admin" }, created_time: { "$gte": new Date(date.getFullYear(), date.getMonth(), date.getDate() - 7) } }] }).sort({ _id: -1 }).exec();
+      break;
+    case '3':
+
+      listUser = await User.find({ $and: [{ role: { $ne: "admin" }, created_time: { "$gte": new Date(date.getFullYear(), date.getMonth() - 1, date.getDate()) } }] }).sort({ _id: -1 }).exec();
+      break;
+    case '4':
+
+      listUser = await User.find({ $and: [{ role: { $ne: "admin" }, created_time: { "$gte": new Date(date.getFullYear() - 1, date.getMonth(), date.getDate()) } }] }).sort({ _id: -1 }).exec();
+      break;
+  }
 
   res.json({
     status: 200,
@@ -122,6 +140,17 @@ exports.getDashboard = async (req, res) => {
     errors: [],
     message: ""
   });
+  //} catch (error) {
+  //   res.json({
+  //     status: 500,
+  //     data: {
+
+  //     },
+  //     errors: "Something wrong!!!",
+  //     message: ""
+  //   });
+  // }
+
 };
 
 exports.getPendingList = async (req, res) => {
@@ -273,7 +302,7 @@ exports.getTree = async (req, res) => {
 
   const listAgency = await User.find({ parentId: id }).exec();
 
-  const listAllUser = await User.find({role: {$ne: 'admin'}}).select("full_name").exec();
+  const listAllUser = await User.find({ role: { $ne: 'admin' } }).select("full_name").exec();
 
   const listChildName = listAllUser.map((child) => {
     return { value: child._id, label: child.full_name };
@@ -292,11 +321,11 @@ exports.getTree = async (req, res) => {
   res.json({
     status: 200,
     data: {
-      listChildName, group: root 
+      listChildName, group: root
     },
     errors: [],
     message: ""
-    });
+  });
 };
 
 exports.editTree = async (req, res) => {
