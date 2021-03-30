@@ -104,6 +104,7 @@ const countTotalBusinessPackage = async () => {
   return count;
 };
 
+
 exports.getDashboard = async (req, res) => {
   //const { id } = req.params;
   //try {
@@ -111,22 +112,39 @@ exports.getDashboard = async (req, res) => {
   const countPersonPackages = await countTotalPersonPackage();
   const countBusinessPackages = await countTotalBusinessPackage();
   const date = new Date();
-  var listUser = await User.find({ role: { $ne: "admin" } }).sort({ _id: -1 }).exec();;
+  var listUser = await User.find({ role: { $ne: "admin" } }).sort({ _id: -1 }).exec();
+  listUser.forEach(element => {
+    element.created_time = new Date(element.created_time);
+  });
+  var kq = [];
   switch (filter) {
     case '1':
-      listUser = await User.find({ $and: [{ role: { $ne: "admin" }, created_time: { "$gte": new Date(date.getFullYear(), date.getMonth(), date.getDate()) } }] }).sort({ _id: -1 }).exec();
+      for (let i = 0; i < listUser.length; i++) {
+        if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth(), date.getDate())) {
+          kq.push(listUser[i]);
+        }
+      }
       break;
     case '2':
-
-      listUser = await User.find({ $and: [{ role: { $ne: "admin" }, created_time: { "$gte": new Date(date.getFullYear(), date.getMonth(), date.getDate() - 7) } }] }).sort({ _id: -1 }).exec();
+      for (let i = 0; i < filistUserlter.length; i++) {
+        if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth(), date.getDate() - 7)) {
+          kq.push(listUser[i]);
+        }
+      }
       break;
     case '3':
-
-      listUser = await User.find({ $and: [{ role: { $ne: "admin" }, created_time: { "$gte": new Date(date.getFullYear(), date.getMonth() - 1, date.getDate()) } }] }).sort({ _id: -1 }).exec();
+      for (let i = 0; i < listUser.length; i++) {
+        if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth() - 1, date.getDate())) {
+          kq.push(listUser[i]);
+        }
+      }
       break;
     case '4':
-
-      listUser = await User.find({ $and: [{ role: { $ne: "admin" }, created_time: { "$gte": new Date(date.getFullYear() - 1, date.getMonth(), date.getDate()) } }] }).sort({ _id: -1 }).exec();
+      for (let i = 0; i < listUser.length; i++) {
+        if (new Date(listUser[i].created_time) > new Date(date.getFullYear() - 1, date.getMonth(), date.getDate())) {
+          kq.push(listUser[i]);
+        }
+      }
       break;
   }
 
@@ -135,7 +153,7 @@ exports.getDashboard = async (req, res) => {
     data: {
       countPersonPackages,
       countBusinessPackages,
-      listUserFilter: listUser,
+      listUserFilter: kq,
     },
     errors: [],
     message: ""
