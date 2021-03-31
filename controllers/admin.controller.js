@@ -171,6 +171,21 @@ exports.getDashboard = async (req, res) => {
 
 };
 
+exports.getUser = async (req, res) => {
+  const { id } = req.params;
+
+  var user = await User.findOne({ role: { $ne: "admin" }, _id: id }).exec();
+  res.json({
+    status: 200,
+    data: {
+      user
+    },
+    errors: [],
+    message: ""
+  });
+
+}
+
 exports.getPendingList = async (req, res) => {
   const listTrans = await Transaction.find({ status: "pending" }).sort().exec();
 
@@ -345,6 +360,32 @@ exports.getTree = async (req, res) => {
     message: ""
   });
 };
+
+exports.updateAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const filter = { _id: id, role: 'admin' };
+    const update = req.body;
+    const a = await User.validate(update);
+    console.log(typeof a);
+    await User.findOneAndUpdate(filter, update);
+    const user = await User.findOne(filter);
+    res.json({
+      status: 200,
+      data: {
+        user
+      },
+      errors: [],
+      message: ""
+    });
+  } catch (error) {
+    res.status(500).json({
+      errors: error.message,
+      message: ""
+    });
+  }
+
+}
 
 exports.editTree = async (req, res) => {
   const { values } = req.body;

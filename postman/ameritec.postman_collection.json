@@ -30,6 +30,57 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "user",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/admin/user/6062020c370d6d1577b425ce",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"admin",
+						"user",
+						"6062020c370d6d1577b425ce"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "update-admin",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\" : \"ameritec_admin@gmail.com\",\r\n    \"password\" : \"$2b$10$3HpEWjLCqQ97bg7cIuPP/OMOyr5kkzQ7zxZTczdXJH2STQPYwiA0m\",\r\n    \"full_name\" : \"admin22213214124\",\r\n    \"avatar\" : \"1111111\",\r\n    \"role\" : \"admin\",\r\n    \"gender\" : \"ádd\",\r\n    \"amount\" :1,\r\n    \"level\" : 0,\r\n    \"point\" : 0,\r\n    \"parentId\" : \"\",\r\n    \"be_member\" : true\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/admin/update-admin/6061e91b370d6d1577b41e7c",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"admin",
+						"update-admin",
+						"6061e91b370d6d1577b41e7c"
+					]
+				}
+			},
+			"response": []
 		}
 	]
 }
