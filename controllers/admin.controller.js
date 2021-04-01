@@ -104,25 +104,87 @@ const countTotalBusinessPackage = async () => {
   return count;
 };
 
-exports.getDashboard = async (req, res) => {
-  const { id } = req.params;
 
+exports.getDashboard = async (req, res) => {
+  //const { id } = req.params;
+  //try {
+  const filter = req.query.filterCode;
   const countPersonPackages = await countTotalPersonPackage();
   const countBusinessPackages = await countTotalBusinessPackage();
-
-  const listUser = await User.find({role: {$ne: "admin"}}).sort({ _id: -1 }).exec();
+  const date = new Date();
+  var listUser = await User.find({ role: { $ne: "admin" } }).sort({ _id: -1 }).exec();
+  listUser.forEach(element => {
+    element.created_time = new Date(element.created_time);
+  });
+  var kq = [];
+  switch (filter) {
+    case '1':
+      for (let i = 0; i < listUser.length; i++) {
+        if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth(), date.getDate())) {
+          kq.push(listUser[i]);
+        }
+      }
+      break;
+    case '2':
+      for (let i = 0; i < filistUserlter.length; i++) {
+        if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth(), date.getDate() - 7)) {
+          kq.push(listUser[i]);
+        }
+      }
+      break;
+    case '3':
+      for (let i = 0; i < listUser.length; i++) {
+        if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth() - 1, date.getDate())) {
+          kq.push(listUser[i]);
+        }
+      }
+      break;
+    case '4':
+      for (let i = 0; i < listUser.length; i++) {
+        if (new Date(listUser[i].created_time) > new Date(date.getFullYear() - 1, date.getMonth(), date.getDate())) {
+          kq.push(listUser[i]);
+        }
+      }
+      break;
+  }
 
   res.json({
     status: 200,
     data: {
       countPersonPackages,
       countBusinessPackages,
-      listUserFilter: listUser,
+      listUserFilter: kq,
     },
     errors: [],
     message: ""
   });
+  //} catch (error) {
+  //   res.json({
+  //     status: 500,
+  //     data: {
+
+  //     },
+  //     errors: "Something wrong!!!",
+  //     message: ""
+  //   });
+  // }
+
 };
+
+exports.getUser = async (req, res) => {
+  const { id } = req.params;
+
+  var user = await User.findOne({ role: { $ne: "admin" }, _id: id }).exec();
+  res.json({
+    status: 200,
+    data: {
+      user
+    },
+    errors: [],
+    message: ""
+  });
+
+}
 
 exports.getPendingList = async (req, res) => {
   const listTrans = await Transaction.find({ status: "pending" }).sort().exec();
@@ -273,7 +335,7 @@ exports.getTree = async (req, res) => {
 
   const listAgency = await User.find({ parentId: id }).exec();
 
-  const listAllUser = await User.find({role: {$ne: 'admin'}}).select("full_name").exec();
+  const listAllUser = await User.find({ role: { $ne: 'admin' } }).select("full_name").exec();
 
   const listChildName = listAllUser.map((child) => {
     return { value: child._id, label: child.full_name };
@@ -292,12 +354,38 @@ exports.getTree = async (req, res) => {
   res.json({
     status: 200,
     data: {
-      listChildName, group: root 
+      listChildName, group: root
     },
     errors: [],
     message: ""
-    });
+  });
 };
+
+exports.updateAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const filter = { _id: id, role: 'admin' };
+    const update = req.body;
+    const a = await User.validate(update);
+    console.log(typeof a);
+    await User.findOneAndUpdate(filter, update);
+    const user = await User.findOne(filter);
+    res.json({
+      status: 200,
+      data: {
+        user
+      },
+      errors: [],
+      message: ""
+    });
+  } catch (error) {
+    res.status(500).json({
+      errors: error.message,
+      message: ""
+    });
+  }
+
+}
 
 exports.editTree = async (req, res) => {
   const { values } = req.body;

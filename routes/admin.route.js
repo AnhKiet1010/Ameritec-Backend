@@ -9,13 +9,17 @@ const {
     postLogin,
     getTree,
     editTree,
-    changeTree
+    changeTree,
+    getUser,
+    updateAdmin
 } = require('../controllers/admin.controller');
 
 router.get('/dashboard', getDashboard);
+router.get('/user/:id', getUser);
 router.get('/getPendingList', getPendingList);
 router.get('/tree/:id/:search', getTree);
 router.post('/login', postLogin);
+router.post('/update-admin/:id', updateAdmin);
 router.post('/edit-tree', editTree);
 router.post('/change-tree', changeTree);
 
