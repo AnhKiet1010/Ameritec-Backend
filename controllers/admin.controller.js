@@ -1,6 +1,7 @@
 const User = require("../models/user.model");
 const Tree = require("../models/tree.model");
 const Transaction = require("../models/transaction.model");
+const { PROVINCES } = require("../constants/province");
 const jwt = require("jsonwebtoken");
 
 const countTotalChildMember = async (subTreeIdList) => {
@@ -173,12 +174,34 @@ exports.getDashboard = async (req, res) => {
 
 exports.getUser = async (req, res) => {
   const { id } = req.params;
+  console.log("id", id);
 
   var user = await User.findOne({ role: { $ne: "admin" }, _id: id }).exec();
+
+  
   res.json({
     status: 200,
     data: {
-      user
+      result : user.be_member ? [
+        {label: "Họ và tên", value: user.full_name},
+        {label: "Email", value: user.email},
+        {label: "Số điện thoại", value: user.phone},
+        {label: "Giới tính", value: user.gender === 1 ? "Nam" : user.gender === 2 ? "Nữ" : "N/A"},
+        {label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0]},
+        {label: "Số chứng minh thư", value: user.id_code},
+        {label: "Ngày cấp", value: new Date(user.id_time).toLocaleDateString("vi").split(",")[0]},
+        {label: "Nơi cấp", value: PROVINCES.find(pro => pro.value === user.issued_by).label},
+        {label: "Số tài khoản", value: user.bank_account},
+        {label: "Ngân hàng", value: user.bank},
+        {label: "Tên tài khoản", value: user.bank_name},
+      ] : [
+        {label: "Họ và tên", value: user.full_name},
+        {label: "Email", value: user.email},
+        {label: "Số điện thoại", value: user.phone},
+        {label: "Giới tính", value: user.gender === 1 ? "Nam" : user.gender === 2 ? "Nữ" : "N/A"},
+        {label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0]},
+      ]
+
     },
     errors: [],
     message: ""
@@ -332,8 +355,14 @@ const getTreeOfOneAgency = async (searchId) => {
 
 exports.getTree = async (req, res) => {
   const { id, search } = req.params;
+  var listAgency = [];
 
-  const listAgency = await User.find({ parentId: id }).exec();
+  if(id === search) {
+    listAgency = [... (await User.find({ parentId: search }).exec())];
+  } else {
+    listAgency = [... (await User.find({ _id: search }).exec())];
+  }
+
 
   const listAllUser = await User.find({ role: { $ne: 'admin' } }).select("full_name").exec();
 
@@ -350,6 +379,7 @@ exports.getTree = async (req, res) => {
     } else {
       root.push(tree);
     }
+
   }
   res.json({
     status: 200,
