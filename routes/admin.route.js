@@ -11,10 +11,12 @@ const {
     editTree,
     changeTree,
     getUser,
-    updateAdmin
+    updateAdmin,
+    getStorage
 } = require('../controllers/admin.controller');
 
 router.get('/dashboard', getDashboard);
+router.get('/storage', getStorage);
 router.get('/user/:id', getUser);
 router.get('/getPendingList', getPendingList);
 router.get('/tree/:id/:search', getTree);

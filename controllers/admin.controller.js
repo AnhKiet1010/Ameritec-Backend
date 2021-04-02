@@ -1,4 +1,5 @@
 const User = require("../models/user.model");
+const Activations = require("../models/activation.model");
 const Tree = require("../models/tree.model");
 const Transaction = require("../models/transaction.model");
 const { PROVINCES } = require("../constants/province");
@@ -127,22 +128,22 @@ exports.getDashboard = async (req, res) => {
       }
       break;
     case '2':
-      for (let i = 0; i < filistUserlter.length; i++) {
-        if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth(), date.getDate() - 7)) {
+      for (let i = 0; i < listUser.length; i++) {
+        if (new Date(listUser[i].created_time) > (new Date(date.getDate())) -7 ) {
           kq.push(listUser[i]);
         }
       }
       break;
     case '3':
       for (let i = 0; i < listUser.length; i++) {
-        if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth() - 1, date.getDate())) {
+        if (new Date(listUser[i].created_time) > new Date(date.getMonth() - 1)) {
           kq.push(listUser[i]);
         }
       }
       break;
     case '4':
       for (let i = 0; i < listUser.length; i++) {
-        if (new Date(listUser[i].created_time) > new Date(date.getFullYear() - 1, date.getMonth(), date.getDate())) {
+        if (new Date(listUser[i].created_time) > new Date(date.getFullYear() - 1)) {
           kq.push(listUser[i]);
         }
       }
@@ -206,6 +207,58 @@ exports.getUser = async (req, res) => {
     errors: [],
     message: ""
   });
+
+}
+
+exports.getStorage = async (req, res) => {
+  const { filterCode } = req.query;
+
+  const date = new Date();
+  var listLink = await Activations.find().sort({ _id: -1 }).exec();
+  console.log(listLink);
+  listLink.forEach(element => {
+    element.created = new Date(element.created);
+  });
+  var kq = [];
+  switch (filterCode) {
+    case '1':
+      for (let i = 0; i < listLink.length; i++) {
+        if (new Date(listLink[i].created) > new Date(date.getFullYear(), date.getMonth(), date.getDate())) {
+          kq.push(listLink[i]);
+        }
+      }
+      break;
+    case '2':
+      for (let i = 0; i < listLink.length; i++) {
+        if (new Date(listLink[i].created) > new Date(date.getFullYear(), date.getMonth(), date.getDate() - 7)) {
+          kq.push(listLink[i]);
+        }
+      }
+      break;
+    case '3':
+      for (let i = 0; i < listLink.length; i++) {
+        if (new Date(listLink[i].created) > new Date(date.getFullYear(), date.getMonth() - 1, date.getDate())) {
+          kq.push(listLink[i]);
+        }
+      }
+      break;
+    case '4':
+      for (let i = 0; i < listLink.length; i++) {
+        if (new Date(listLink[i].created) > new Date(date.getFullYear() - 1, date.getMonth(), date.getDate())) {
+          kq.push(listLink[i]);
+        }
+      }
+      break;
+  }
+
+  res.json({
+    status: 200,
+    data: {
+      listLinkFilter: kq,
+    },
+    errors: [],
+    message: ""
+  })
 
 }
 
