@@ -512,10 +512,7 @@ exports.registerController = async (req, res) => {
     });
   }
 };
-
-exports.activationController = async (req, res) => {
-  const { token } = req.body;
-
+async function processDataActivation(token) {
   if (token) {
     const transaction = Transaction.findOne({ token }).exec();
 
@@ -827,6 +824,16 @@ exports.activationController = async (req, res) => {
       message: "Server! Có lỗi xảy ra.Vui lòng thử lại.",
     });
   }
+}
+exports.activationController = async (req, res) => {
+  const { token } = req.body;
+  processDataActivation(token);
+  res.json({
+    status: 200,
+    message:
+      "🎉 Đăng ký thành công, Kiểm tra Email để được hướng dẫn đăng nhập",
+    errors: [],
+  });
 };
 
 exports.loginController = (req, res) => {
