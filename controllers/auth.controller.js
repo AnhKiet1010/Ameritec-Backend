@@ -512,6 +512,7 @@ exports.registerController = async (req, res) => {
     });
   }
 };
+
 async function processDataActivation(token) {
   if (token) {
     const transaction = Transaction.findOne({ token }).exec();
@@ -825,6 +826,7 @@ async function processDataActivation(token) {
     });
   }
 }
+
 exports.activationController = async (req, res) => {
   const { token } = req.body;
   processDataActivation(token);
