@@ -11,7 +11,8 @@ const {
     editTree,
     changeTree,
     getUser,
-    updateAdmin
+    updateAdmin,
+    createAdmin
 } = require('../controllers/admin.controller');
 
 router.get('/dashboard', getDashboard);
@@ -22,5 +23,6 @@ router.post('/login', postLogin);
 router.post('/update-admin/:id', updateAdmin);
 router.post('/edit-tree', editTree);
 router.post('/change-tree', changeTree);
+router.post('/create-admin', createAdmin);
 
 module.exports = router;

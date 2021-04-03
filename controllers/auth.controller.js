@@ -169,15 +169,14 @@ const returnActiveAppMail = async (full_name, email, phone, links) => {
                   <li>Họ và Tên : ${full_name}</li>
                   <li>Email : ${email}</li>
                   <li>Số điện thoại : ${phone}</li>
-                  <li>Link giới thiệu : Vui lòng đăng nhập vào hệ thống để tạo <a href="${
-                    process.env.CLIENT_URL
-                  }/login">link giới thiệu</a></li>
+                  <li>Link giới thiệu : Vui lòng đăng nhập vào hệ thống để tạo <a href="${process.env.CLIENT_URL
+      }/login">link giới thiệu</a></li>
                 </ul>
               <h1>ĐƯỜNG DẪN KÍCH HOẠT AIPS APP</h1>
               <ul>
               ${links.map((link, index) => {
-                return `<li>link ${index + 1} : <a href=${`https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}`}>nhấp vào đây để active</a></li>`;
-              })}
+        return `<li>link ${index + 1} : <a href=${`https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}`}>nhấp vào đây để active</a></li>`;
+      })}
               </ul>
               <hr />
               <p>Mọi thông tin xin vui lòng liên hệ</p>
@@ -378,47 +377,47 @@ exports.registerController = async (req, res) => {
   }
 
   if (be_member) {
-    if(id_code === "") {
+    if (id_code === "") {
       errors.push({
         label: "id_code",
         err_message: "Vui lòng điền số CMND",
       });
     }
-    if(bank_account === "") {
+    if (bank_account === "") {
       errors.push({
         label: "bank_account",
         err_message: "Vui lòng điền số tài khoản của Bạn",
       });
     }
-    if(id_time === "") {
+    if (id_time === "") {
       errors.push({
         label: "id_time",
         err_message: "Vui lòng chọn ngày cấp CMND",
       });
     }
-    if(issued_by === "") {
+    if (issued_by === "") {
       errors.push({
         label: "issued_by",
         err_message: "Vui lòng chọn nơi cấp CMND",
       });
     }
-    if(bank === "") {
+    if (bank === "") {
       errors.push({
         label: "bank",
         err_message: "Vui lòng chọn ngân hàng bạn đang sử dụng",
       });
     }
-    if(bank_name === "") {
+    if (bank_name === "") {
       errors.push({
         label: "bank_name",
         err_message: "Vui lòng điền tên tài khoản của Bạn",
       });
     }
-    const user_repeat_id_code = await User.findOne({ $and : [{id_code: id_code}, {id_code: {$ne: ""}}] }).exec();
+    const user_repeat_id_code = await User.findOne({ $and: [{ id_code: id_code }, { id_code: { $ne: "" } }] }).exec();
     const user_repeat_bank_account = await User.findOne({
-      $and : [{bank_account: bank_account}, {bank_account: {$ne: ""}}] 
+      $and: [{ bank_account: bank_account }, { bank_account: { $ne: "" } }]
     }).exec();
-    const user_repeat_tax_code = await User.findOne({ $and : [{tax_code: tax_code}, {tax_code: {$ne: ""}}] }).exec();
+    const user_repeat_tax_code = await User.findOne({ $and: [{ tax_code: tax_code }, { tax_code: { $ne: "" } }] }).exec();
 
     if (user_repeat_id_code) {
       errors.push({
@@ -1452,7 +1451,7 @@ exports.addDemoData = async (req, res) => {
 };
 
 const returnCommission = async (receive_mem, buy_package, join_mem) => {
-  const bankAccountOfParent = await User.findOne({_id : receive_mem}).exec();
+  const bankAccountOfParent = await User.findOne({ _id: receive_mem }).exec();
 
   const commission = new Commission({
     receive_mem: bankAccountOfParent.full_name,

@@ -126,7 +126,7 @@ exports.getDashboard = async (req, res) => {
       }
       break;
     case '2':
-      for (let i = 0; i < filistUserlter.length; i++) {
+      for (let i = 0; i < listUser.length; i++) {
         if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth(), date.getDate() - 7)) {
           kq.push(listUser[i]);
         }
@@ -361,13 +361,41 @@ exports.getTree = async (req, res) => {
   });
 };
 
+exports.createAdmin = async (req, res) => {
+  try {
+    const admin = req.body;
+    var user = await User.findOne({ role: "admin", email: admin.email }).exec();
+    if (user === null) {
+      await User.insertMany(admin);
+      var adminnew = await User.findOne({ role: "admin", email: admin.email }).exec();
+      res.status(201).json({
+        errors: [],
+        data: {
+          adminnew
+        },
+        message: "email has been take by another!"
+      });
+    }
+    else {
+      res.status(500).json({
+        errors: [],
+        message: "email has been take by another!"
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      errors: error.message,
+      message: ""
+    });
+  }
+
+}
+
 exports.updateAdmin = async (req, res) => {
   try {
     const { id } = req.params;
     const filter = { _id: id, role: 'admin' };
     const update = req.body;
-    const a = await User.validate(update);
-    console.log(typeof a);
     await User.findOneAndUpdate(filter, update);
     const user = await User.findOne(filter);
     res.json({
