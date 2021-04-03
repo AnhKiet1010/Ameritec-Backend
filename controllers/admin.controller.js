@@ -129,7 +129,7 @@ exports.getDashboard = async (req, res) => {
       break;
     case '2':
       for (let i = 0; i < listUser.length; i++) {
-        if (new Date(listUser[i].created_time) > (new Date(date.getDate())) -7 ) {
+        if (new Date(listUser[i].created_time) > (new Date(date.getDate())) - 7) {
           kq.push(listUser[i]);
         }
       }
@@ -179,28 +179,28 @@ exports.getUser = async (req, res) => {
 
   var user = await User.findOne({ role: { $ne: "admin" }, _id: id }).exec();
 
-  
+
   res.json({
     status: 200,
     data: {
-      result : user.be_member ? [
-        {label: "Họ và tên", value: user.full_name},
-        {label: "Email", value: user.email},
-        {label: "Số điện thoại", value: user.phone},
-        {label: "Giới tính", value: user.gender === 1 ? "Nam" : user.gender === 2 ? "Nữ" : "N/A"},
-        {label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0]},
-        {label: "Số chứng minh thư", value: user.id_code},
-        {label: "Ngày cấp", value: new Date(user.id_time).toLocaleDateString("vi").split(",")[0]},
-        {label: "Nơi cấp", value: PROVINCES.find(pro => pro.value === user.issued_by).label},
-        {label: "Số tài khoản", value: user.bank_account},
-        {label: "Ngân hàng", value: user.bank},
-        {label: "Tên tài khoản", value: user.bank_name},
+      result: user.be_member ? [
+        { label: "Họ và tên", value: user.full_name },
+        { label: "Email", value: user.email },
+        { label: "Số điện thoại", value: user.phone },
+        { label: "Giới tính", value: user.gender === 1 ? "Nam" : user.gender === 2 ? "Nữ" : "N/A" },
+        { label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0] },
+        { label: "Số chứng minh thư", value: user.id_code },
+        { label: "Ngày cấp", value: new Date(user.id_time).toLocaleDateString("vi").split(",")[0] },
+        { label: "Nơi cấp", value: PROVINCES.find(pro => pro.value === user.issued_by).label },
+        { label: "Số tài khoản", value: user.bank_account },
+        { label: "Ngân hàng", value: user.bank },
+        { label: "Tên tài khoản", value: user.bank_name },
       ] : [
-        {label: "Họ và tên", value: user.full_name},
-        {label: "Email", value: user.email},
-        {label: "Số điện thoại", value: user.phone},
-        {label: "Giới tính", value: user.gender === 1 ? "Nam" : user.gender === 2 ? "Nữ" : "N/A"},
-        {label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0]},
+        { label: "Họ và tên", value: user.full_name },
+        { label: "Email", value: user.email },
+        { label: "Số điện thoại", value: user.phone },
+        { label: "Giới tính", value: user.gender === 1 ? "Nam" : user.gender === 2 ? "Nữ" : "N/A" },
+        { label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0] },
       ]
 
     },
@@ -410,7 +410,7 @@ exports.getTree = async (req, res) => {
   const { id, search } = req.params;
   var listAgency = [];
 
-  if(id === search) {
+  if (id === search) {
     listAgency = [... (await User.find({ parentId: search }).exec())];
   } else {
     listAgency = [... (await User.find({ _id: search }).exec())];
@@ -444,13 +444,41 @@ exports.getTree = async (req, res) => {
   });
 };
 
+exports.createAdmin = async (req, res) => {
+  try {
+    const admin = req.body;
+    var user = await User.findOne({ role: "admin", email: admin.email }).exec();
+    if (user === null) {
+      await User.insertMany(admin);
+      var adminnew = await User.findOne({ role: "admin", email: admin.email }).exec();
+      res.status(201).json({
+        errors: [],
+        data: {
+          adminnew
+        },
+        message: "email has been take by another!"
+      });
+    }
+    else {
+      res.status(500).json({
+        errors: [],
+        message: "email has been take by another!"
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      errors: error.message,
+      message: ""
+    });
+  }
+
+}
+
 exports.updateAdmin = async (req, res) => {
   try {
     const { id } = req.params;
     const filter = { _id: id, role: 'admin' };
     const update = req.body;
-    const a = await User.validate(update);
-    console.log(typeof a);
     await User.findOneAndUpdate(filter, update);
     const user = await User.findOne(filter);
     res.json({
