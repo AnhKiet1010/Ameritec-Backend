@@ -9,10 +9,14 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const sgMail = require("@sendgrid/mail");
 const e = require("express");
+//const multer = require("multer");
+
 sgMail.setApiKey(process.env.MAIL_KEY);
 
 const saltRounds = 10;
-
+//const upload = multer({
+ // dest: "./public/imgs"
+//});
 const getActiveLink = async (email, full_name, phone, buy_package) => {
   let accessToken = "";
   let groupId = "";
@@ -827,6 +831,21 @@ async function processDataActivation(token) {
 }
 exports.activationController = async (req, res) => {
   const { token } = req.body;
+  if (token) {
+    jwt.verify(
+      token,
+      process.env.JWT_ACCOUNT_ACTIVATION,
+      async (err, decoded) => {
+        if (err) {
+          console.log("Activation error 2");
+          return res.status(401).json({
+            status: 401,
+            message: "Đường dẫn đã hết hạn.Vui lòng đăng ký lại",
+            errors: [],
+          });
+        }
+      })
+  }
   processDataActivation(token);
   res.json({
     status: 200,

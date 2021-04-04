@@ -118,17 +118,17 @@ connectDB();
 
 const { deletePendingTransactions, setExpiredUser } = require("./config/cron");
 
-// const cron1 = new CronJob("5 * * * *", () => {
-//   console.log("Running delete pending transaction");
-//   deletePendingTransactions();
-// });
+const cron1 = new CronJob("5 * * * *", () => {
+  console.log("Running delete pending transaction");
+  deletePendingTransactions();
+});
 
 const cron2 = new CronJob("00 00 * * *", () => {
   console.log("Running set expired user");
   setExpiredUser();
 });
 
-// cron1.start();
+cron1.start();
 cron2.start();
 
 const PORT = process.env.PORT || 5000;
