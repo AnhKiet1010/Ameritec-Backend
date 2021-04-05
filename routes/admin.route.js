@@ -1,5 +1,17 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, './public/imgs')
+    },
+    filename: (req, file, cb) => {
+        cb(null, file.originalname)
+    }
+});
+const upload = multer({
+    storage: storage
+});
 
 const { checkAdmin, checkAdminPost } = require('../middlewares');
 
@@ -13,7 +25,8 @@ const {
     getUser,
     updateAdmin,
     getStorage,
-    createAdmin
+    createAdmin,
+    uploadFile
 } = require('../controllers/admin.controller');
 
 router.get('/dashboard', getDashboard);
@@ -26,5 +39,6 @@ router.post('/update-admin/:id', updateAdmin);
 router.post('/edit-tree', editTree);
 router.post('/change-tree', changeTree);
 router.post('/create-admin', createAdmin);
+router.post('/uploadFile', upload.array('file'), uploadFile);
 
 module.exports = router;
