@@ -4,6 +4,21 @@ const Tree = require("../models/tree.model");
 const Transaction = require("../models/transaction.model");
 const { PROVINCES } = require("../constants/province");
 const jwt = require("jsonwebtoken");
+var fs = require('fs');
+
+exports.uploadFile = async (req, res,) => {
+  const files = req.files;
+  files.forEach(element => {
+    fs.rename('./' + element.path, './public/imgs/' + element.size + '.png', (err) => {
+      if (err) throw err;
+      console.log('Rename complete!');
+    });
+  });
+  res.json({
+    status: 200,
+    errors: [a],
+  });
+};
 
 const countTotalChildMember = async (subTreeIdList) => {
   var count = subTreeIdList.length;
@@ -30,7 +45,6 @@ const countTotalChildMember = async (subTreeIdList) => {
   }
   return count;
 };
-
 exports.postLogin = async (req, res) => {
   const { acc, password } = req.body;
 
@@ -105,7 +119,6 @@ const countTotalBusinessPackage = async () => {
   }
   return count;
 };
-
 
 exports.getDashboard = async (req, res) => {
   //const { id } = req.params;

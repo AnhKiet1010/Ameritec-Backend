@@ -14,7 +14,8 @@ exports.deletePendingTransactions = async () => {
             kq.push(listTrans[i]._id);
         }
     }
-    await Transaction.deleteMany({ $pullAll: { _id: kq } }).exec();
+    await Transaction.deleteMany({ _id: kq }).exec();
+    console.log("finish deletePendingTransactions ");
     //await Transaction.deleteMany({ status: "pending" }).exec();
 }
 
