@@ -131,21 +131,21 @@ exports.getDashboard = async (req, res) => {
       break;
     case '2':
       for (let i = 0; i < listUser.length; i++) {
-        if (new Date(listUser[i].created_time) > new Date(date.getDate()) - 7) {
+        if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth(), date.getDate() - 7)) {
           kq.push(listUser[i]);
         }
       }
       break;
     case '3':
       for (let i = 0; i < listUser.length; i++) {
-        if (new Date(listUser[i].created_time) > new Date(date.getMonth() - 1)) {
+        if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth() - 1, date.getDate())) {
           kq.push(listUser[i]);
         }
       }
       break;
     case '4':
       for (let i = 0; i < listUser.length; i++) {
-        if (new Date(listUser[i].created_time) > new Date(date.getFullYear() - 1)) {
+        if (new Date(listUser[i].created_time) > new Date(date.getFullYear() - 1, date.getMonth(), date.getDate() - 7)) {
           kq.push(listUser[i]);
         }
       }
@@ -411,13 +411,13 @@ const getTreeOfOneAgency = async (searchId) => {
 exports.getTree = async (req, res) => {
   const { id, search } = req.params;
   var listAgency = [];
+  const invite_code = process.env.INVITE_CODE;
 
   if (id === search) {
-    listAgency = [... (await User.find({ parentId: search }).exec())];
+    listAgency = [... (await User.find({ parentId: invite_code }).exec())];
   } else {
     listAgency = [... (await User.find({ _id: search }).exec())];
   }
-
 
   const listAllUser = await User.find({ role: { $ne: 'admin' } }).select("full_name").exec();
 

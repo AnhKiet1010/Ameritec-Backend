@@ -9,9 +9,15 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const sgMail = require("@sendgrid/mail");
 const e = require("express");
+//const multer = require("multer");
+
 sgMail.setApiKey(process.env.MAIL_KEY);
 
 const saltRounds = 10;
+
+//const upload = multer({
+// dest: "./public/imgs"
+//});
 
 const getActiveLink = async (email, full_name, phone, buy_package) => {
   let accessToken = "";
@@ -152,40 +158,9 @@ const returnActiveAppMail = async (full_name, email, phone, links) => {
     from: process.env.EMAIL_FROM,
     to: email,
     subject: "💌 ĐÃ KÍCH HOẠT TÀI KHOẢN THÀNH CÔNG",
-    html: `<!DOCTYPE html>
-    <html lang="en">
-          <head>
-          <meta name="format-detection" content="telephone=no">
-          <meta name="format-detection" content="email=no">
-          <style>
-            ul {
-              list-type: none;
-            }
-          </style>
-          </head>
-          <body>
-              <h1>THÔNG TIN</h1>
-                <ul>
-                  <li>Họ và Tên : ${full_name}</li>
-                  <li>Email : ${email}</li>
-                  <li>Số điện thoại : ${phone}</li>
-                  <li>Link giới thiệu : Vui lòng đăng nhập vào hệ thống để tạo <a href="${process.env.CLIENT_URL
-      }/login">link giới thiệu</a></li>
-                </ul>
-              <h1>ĐƯỜNG DẪN KÍCH HOẠT AIPS APP</h1>
-              <ul>
-              ${links.map((link, index) => {
-        return `<li>link ${index + 1} : <a href=${`https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}`}>nhấp vào đây để active</a></li>`;
-      })}
-              </ul>
-              <hr />
-              <p>Mọi thông tin xin vui lòng liên hệ</p>
-              <p>${process.env.CLIENT_URL}</p>
-              <p>Link đăng nhập</p>
-              <p>${process.env.CLIENT_URL}/login</p>
-          </body>
-          </html>
-          `,
+    html: `
+    <li>link ${index + 1} : <a href=https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}>nhấp vào đây để active</a></li>
+    `,
   };
 
   sgMail.send(emailData, async (error, result) => {
@@ -298,7 +273,6 @@ const checkUpLevel = async (user, buy_package) => {
 
 exports.checkLinkController = async (req, res) => {
   const { invite_code, donate_sales_id, group } = req.body;
-  console.log(typeof group);
 
   if (
     invite_code.split("").length !== 24 ||
@@ -829,6 +803,21 @@ async function processDataActivation(token) {
 
 exports.activationController = async (req, res) => {
   const { token } = req.body;
+  if (token) {
+    jwt.verify(
+      token,
+      process.env.JWT_ACCOUNT_ACTIVATION,
+      async (err, decoded) => {
+        if (err) {
+          console.log("Activation error 2");
+          return res.status(401).json({
+            status: 401,
+            message: "Đường dẫn đã hết hạn.Vui lòng đăng ký lại",
+            errors: [],
+          });
+        }
+      })
+  }
   processDataActivation(token);
   res.json({
     status: 200,
