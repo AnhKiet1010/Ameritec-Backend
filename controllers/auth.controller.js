@@ -9,7 +9,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const sgMail = require("@sendgrid/mail");
 const e = require("express");
-//const multer = require("multer");
+
 
 sgMail.setApiKey(process.env.MAIL_KEY);
 
@@ -157,9 +157,66 @@ const returnActiveAppMail = async (full_name, email, phone, links) => {
   const emailData = {
     from: process.env.EMAIL_FROM,
     to: email,
-    subject: "💌 ĐÃ KÍCH HOẠT TÀI KHOẢN THÀNH CÔNG",
+    subject: "[AMERITEC] ĐÃ KÍCH HOẠT TÀI KHOẢN THÀNH CÔNG",
     html: `
-    <li>link ${index + 1} : <a href=https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}>nhấp vào đây để active</a></li>
+    <div style="margin: 50px ">
+
+<div style="max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; align-items: center">
+  <div>
+    <img src="https://ameritecjsc.com/wp-content/themes/zimperium/assets/img/logo-ameritec-02.png" width="140px" alt="logo">
+  </div>
+  <div>
+  <p style="font-size: 20px">AIPS App ứng dụng bảo mật di động hàng đầu</p>
+  </div>
+  <div>
+    <p style="font-size: 18px">Chúc mừng Bạn đã đăng ký thành công tài khoản tại <span style="font-weight: bold">Ameritec</span></p>
+  </div>
+  <div>
+  <p style="font-size: 17px;">Thông tin tài khoản</p>
+  </div>
+  <div>
+
+  <ul style="font-size: 16px; color: #34495e">
+  <li style="margin-bottom: 10px;">Họ và tên : ${full_name}</li>
+  <li style="margin-bottom: 10px;">Điện thoại di động: ${phone}
+</li>
+<li style="margin-bottom: 10px;">Email: ${email}
+</li>
+<li style="margin-bottom: 10px;">Link giới thiệu: Vui lòng truy cập vào <a href="${process.env.CLIENT_URL}/login">hệ thống</a> để tạo link giới thiệu.</li>
+</ul>
+</div>
+  <div>
+    <p style="font-size: 17px; color: #2c3e50">Đường dẫn kích hoạt AIPS App</p>
+  </div>
+  <div>
+
+  <ul style="font-size: 16px; color: #34495e">
+  ${
+    links.map((index,link) => {
+    return `<li style="margin-bottom: 10px;">Link ${index + 1} : <a href=https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}>AIPS APP ${index + 1}</a></li>`;
+    }) 
+  }
+</ul>
+</div>
+</div>
+
+<div>
+<div>
+<p style="font-size: 16px; color: #34495e">Mọi chi tiết vui lòng liên hệ : </p>
+
+<ul style="font-size: 16px; list-style-type: square; color: #34495e">
+  <li style="margin-bottom: 10px;">Văn phòng đại diện : Tầng 25.02 Tòa nhà Viettel số 285 cách mạng tháng 8 , P.12, Q.10, TP. Hồ Chí Minh</li>
+  <li style="margin-bottom: 10px;">Điện thoại di động: 028.2250.8166
+</li>
+<li style="margin-bottom: 10px;">Email: support@ameritecjsc.com
+</li>
+<li style="margin-bottom: 10px;">Website: https://ameritecjsc.com</li>
+</ul>
+<p style="color: gray">Bản quyền thuộc về Công Ty Cổ Phần Ameritec | 2020 - 2021</p>
+
+</div>
+</div>
+</div>
     `,
   };
 

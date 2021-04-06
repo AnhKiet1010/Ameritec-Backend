@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const multer  = require('multer');
+const multer = require('multer');
 
 // UPLOAD IMAGE
 const storage = multer.diskStorage({
@@ -48,6 +48,7 @@ router.post('/activation', activationController);
 router.post('/login', loginController);
 router.post('/user-info', userInfoController);
 router.post('/checkLink', checkLinkController);
+
 
 // login route
 router.get('/signInRequest', loginRequest);
