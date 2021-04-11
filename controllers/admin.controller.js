@@ -45,6 +45,7 @@ const countTotalChildMember = async (subTreeIdList) => {
   }
   return count;
 };
+
 exports.postLogin = async (req, res) => {
   const { acc, password } = req.body;
 

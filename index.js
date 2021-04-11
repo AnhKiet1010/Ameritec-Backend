@@ -23,13 +23,12 @@ app.use(cookieParser());
 
 const connectDB = require("./config/db");
 
-// body parser
-app.use(
-  bodyParser.json({
-    json: { limit: "200mb", extended: true },
-    urlencoded: { limit: "200mb", extended: true },
-  })
-);
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({limit: '500mb', extended: false }))
+ 
+// parse application/json
+app.use(bodyParser.json({limit: '500mb', extended: true}))
+
 // Dev Login Middleware
 app.use(cors());
 app.use(morgan("dev"));
@@ -130,11 +129,12 @@ const cron2 = new CronJob("00 00 * * *", () => {
 cron1.start();
 cron2.start();
 
+app.use(express.static("public"));
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`App listening on port ${PORT}`);
 });
 
-app.use(express.static("public"));
 
