@@ -9,7 +9,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const sgMail = require("@sendgrid/mail");
 const e = require("express");
-
+const fs = require('fs');
 
 sgMail.setApiKey(process.env.MAIL_KEY);
 
@@ -362,6 +362,19 @@ exports.registerController = async (req, res) => {
     buy_package,
     id_time,
   } = req.body;
+  const files = req.files;
+  const listNameIMG = [];
+  fs.rename('./' + files.CMND_Front[0].path, './public/uploads/trans/' + email + '_front.' + files.CMND_Front[0].filename.split('.').pop(), (err) => {
+    if (err) console.log(err);
+    console.log('Rename Front complete!');
+  });
+  listNameIMG.push(email + '_front.' + files.CMND_Front[0].filename.split('.').pop());
+  fs.rename('./' + files.CMND_Back[0].path, './public/uploads/trans/' + email + '_back.' + files.CMND_Back[0].filename.split('.').pop(), (err) => {
+    if (err) console.log(err);
+    console.log('Rename Back complete!');
+  });
+  listNameIMG.push(email + '_back.' + files.CMND_Back[0].filename.split('.').pop());
+
 
   const user_repeat_email = await User.findOne({ email }).exec();
   const valid_phone = await User.findOne({ phone }).exec();
@@ -472,6 +485,7 @@ exports.registerController = async (req, res) => {
         groupNumber,
         buy_package,
         id_time,
+        listNameIMG,
       },
       process.env.JWT_ACCOUNT_ACTIVATION,
       { expiresIn: "15m" }
@@ -492,6 +506,7 @@ exports.registerController = async (req, res) => {
       buy_package,
     });
 
+
     await newTransaction.save(function (err) {
       if (err) {
         console.log("fail to save transaction!");
@@ -507,6 +522,7 @@ exports.registerController = async (req, res) => {
         });
       } else {
         console.log("save transaction done!");
+
         res.json({
           status: 200,
           message: "",

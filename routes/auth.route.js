@@ -5,7 +5,7 @@ const multer = require('multer');
 // UPLOAD IMAGE
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, './public/upload');
+        cb(null, './public/uploads/trans');
     },
     filename: function (req, file, cb) {
         cb(null, file.originalname)
@@ -43,7 +43,7 @@ const {
 } = require('../controllers/auth.controller');
 
 // auth route
-router.post('/register', registerController);
+router.post('/register', upload.fields([{ name: 'CMND_Front', maxCount: 1 }, { name: 'CMND_Back', maxCount: 1 }]), registerController);
 router.post('/activation', activationController);
 router.post('/login', loginController);
 router.post('/user-info', userInfoController);
