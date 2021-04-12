@@ -400,16 +400,16 @@ exports.registerController = async (req, res) => {
   listNameIMG.push(email + '_back.' + files.CMND_Back[0].filename.split('.').pop());
 
 
-  // const user_repeat_email = await User.findOne({ email }).exec();
-  // const valid_phone = await User.findOne({ phone }).exec();
+  const user_repeat_email = await User.findOne({ email }).exec();
+  const valid_phone = await User.findOne({ phone }).exec();
 
-  // await Transaction.deleteMany({ email, status: "pending" }).exec();
+  await Transaction.deleteMany({ email, status: "pending" }).exec();
 
-  // const errors = [];
+  const errors = [];
 
-  // if (user_repeat_email) {
-  //   errors.push({ label: "email", err_message: "Email này đã được sử dụng" });
-  // }
+  if (user_repeat_email) {
+    errors.push({ label: "email", err_message: "Email này đã được sử dụng" });
+  }
 
   if (errors.length > 0) {
     res.json({
@@ -447,123 +447,6 @@ exports.registerController = async (req, res) => {
 
     const oneYearFromNow = new Date();
     oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-  // if (valid_phone) {
-  //   errors.push({
-  //     label: "phone",
-  //     err_message: "Số điện thoại đã được sử dụng.Vui lòng chọn số khác",
-  //   });
-  // }
-
-  // if (be_member) {
-  //   if (id_code === "") {
-  //     errors.push({
-  //       label: "id_code",
-  //       err_message: "Vui lòng điền số CMND",
-  //     });
-  //   }
-  //   if (bank_account === "") {
-  //     errors.push({
-  //       label: "bank_account",
-  //       err_message: "Vui lòng điền số tài khoản của Bạn",
-  //     });
-  //   }
-  //   if (id_time === "") {
-  //     errors.push({
-  //       label: "id_time",
-  //       err_message: "Vui lòng chọn ngày cấp CMND",
-  //     });
-  //   }
-  //   if (issued_by === "") {
-  //     errors.push({
-  //       label: "issued_by",
-  //       err_message: "Vui lòng chọn nơi cấp CMND",
-  //     });
-  //   }
-  //   if (bank === "") {
-  //     errors.push({
-  //       label: "bank",
-  //       err_message: "Vui lòng chọn ngân hàng bạn đang sử dụng",
-  //     });
-  //   }
-  //   if (bank_name === "") {
-  //     errors.push({
-  //       label: "bank_name",
-  //       err_message: "Vui lòng điền tên tài khoản của Bạn",
-  //     });
-  //   }
-  //   const user_repeat_id_code = await User.findOne({ $and: [{ id_code: id_code }, { id_code: { $ne: "" } }] }).exec();
-  //   const user_repeat_bank_account = await User.findOne({
-  //     $and: [{ bank_account: bank_account }, { bank_account: { $ne: "" } }]
-  //   }).exec();
-  //   const user_repeat_tax_code = await User.findOne({ $and: [{ tax_code: tax_code }, { tax_code: { $ne: "" } }] }).exec();
-
-  //   if (user_repeat_id_code) {
-  //     errors.push({
-  //       label: "id_code",
-  //       err_message: "Số CMND đã được sử dụng",
-  //     });
-  //   }
-  //   if (user_repeat_bank_account) {
-  //     errors.push({
-  //       label: "bank_account",
-  //       err_message: "Số Tài Khoản này đã được sử dụng",
-  //     });
-  //   }
-  //   if (user_repeat_tax_code) {
-  //     errors.push({
-  //       label: "tax_code",
-  //       err_message: "Mã Số Thuế này đã được sử dụng",
-  //     });
-  //   }
-  // }
-
-  // if (errors.length > 0) {
-  //   res.json({
-  //     status: 401,
-  //     errors,
-  //     message: "Có lỗi xảy ra!",
-  //   });
-  // } else {
-  //   const token = jwt.sign(
-  //     {
-  //       full_name,
-  //       email,
-  //       password,
-  //       phone,
-  //       id_code,
-  //       be_member,
-  //       issued_by,
-  //       bank,
-  //       bank_account,
-  //       bank_name,
-  //       iden_type,
-  //       tax_code,
-  //       birthday,
-  //       gender,
-  //       invite_code,
-  //       donate_sales_id,
-  //       groupNumber,
-  //       buy_package,
-  //       id_time,
-  //     },
-  //     process.env.JWT_ACCOUNT_ACTIVATION,
-  //     { expiresIn: "15m" }
-  //   );
-
-  //   const oneYearFromNow = new Date();
-  //   oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-
-  //   const newTransaction = new Transaction({
-  //     status: "pending",
-  //     payment_method: "",
-  //     token,
-  //     created_time: new Date(),
-  //     created_by: full_name,
-  //     email,
-  //     phone,
-  //     expired_time: oneYearFromNow,
-  //     buy_package,
-  //   });
 
 
     await newTransaction.save(function (err) {
@@ -591,30 +474,6 @@ exports.registerController = async (req, res) => {
       }
     });
   }
-  //   await newTransaction.save(function (err) {
-  //     if (err) {
-  //       console.log("fail to save transaction!");
-  //       res.json({
-  //         status: 200,
-  //         message: "fail to save transaction!",
-  //         errors: [
-  //           {
-  //             label: "transaction",
-  //             err_message: "Lỗi khi tạo giao dịch.Vui lòng thử lại sau",
-  //           },
-  //         ],
-  //       });
-  //     } else {
-  //       console.log("save transaction done!");
-  //       res.json({
-  //         status: 200,
-  //         message: "",
-  //         data: { email, full_name, phone },
-  //         errors,
-  //       });
-  //     }
-  //   });
-  // }
 };
 
 async function processDataActivation(token) {
