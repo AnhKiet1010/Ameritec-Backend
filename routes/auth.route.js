@@ -4,30 +4,54 @@ const multer = require('multer');
 
 // UPLOAD IMAGE
 const storage = multer.diskStorage({
-    destination: function (req, file, cb) {        
-        cb(null, './public/uploads');
+    destination: function (req, file, cb) {
+        cb(null, './public/uploads/trans');
     },
     filename: function (req, file, cb) {
-        console.log("file", file);
-        cb(null,"IMAGE-" + Date.now() + path.extname(file.originalname));
+        cb(null, file.originalname)
     }
 });
 
 var upload = multer({
     storage: storage,
     fileFilter: function (req, file, cb) {
-        console.log("aaaaaaaaaaaaaaa");
         if (
+            file.mimetype == "image/bmp" ||
             file.mimetype == "image/png" ||
+            file.mimetype == "image/gif" ||
             file.mimetype == "image/jpg" ||
             file.mimetype == "image/jpeg"
         ) {
-            cb(null, console.log("image saved"));
+            cb(null, true);
+            console.log('avatar saved');
         } else {
             return cb(new Error("only image are allowed!"));
         }
     }
 });
+// const storage = multer.diskStorage({
+//     destination: function (req, file, cb) {        
+//         cb(null, './public/uploads');
+//     },
+//     filename: function (req, file, cb) {
+//         cb(null,"IMAGE-" + Date.now() + path.extname(file.originalname));
+//     }
+// });
+
+// var upload = multer({
+//     storage: storage,
+//     fileFilter: function (req, file, cb) {
+//         if (
+//             file.mimetype == "image/png" ||
+//             file.mimetype == "image/jpg" ||
+//             file.mimetype == "image/jpeg"
+//         ) {
+//             cb(null, console.log("image saved"));
+//         } else {
+//             return cb(new Error("only image are allowed!"));
+//         }
+//     }
+// });
 
 const {
     registerController,
@@ -42,7 +66,8 @@ const {
 } = require('../controllers/auth.controller');
 
 // auth route
-router.post('/register',upload.fields([{name: 'cmndMT'}]), registerController);
+router.post('/register', upload.fields([{ name: 'CMND_Front', maxCount: 1 }, { name: 'CMND_Back', maxCount: 1 }]), registerController);
+router.post('/register',cpUpload, registerController);
 router.post('/activation', activationController);
 router.post('/login', loginController);
 router.post('/user-info', userInfoController);

@@ -9,7 +9,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const sgMail = require("@sendgrid/mail");
 const e = require("express");
-
+const fs = require('fs');
 
 sgMail.setApiKey(process.env.MAIL_KEY);
 
@@ -386,6 +386,19 @@ exports.registerController = async (req, res) => {
     buy_package,
     id_time,
   } = req.body;
+  const files = req.files;
+  const listNameIMG = [];
+  fs.rename('./' + files.CMND_Front[0].path, './public/uploads/trans/' + email + '_front.' + files.CMND_Front[0].filename.split('.').pop(), (err) => {
+    if (err) console.log(err);
+    console.log('Rename Front complete!');
+  });
+  listNameIMG.push(email + '_front.' + files.CMND_Front[0].filename.split('.').pop());
+  fs.rename('./' + files.CMND_Back[0].path, './public/uploads/trans/' + email + '_back.' + files.CMND_Back[0].filename.split('.').pop(), (err) => {
+    if (err) console.log(err);
+    console.log('Rename Back complete!');
+  });
+  listNameIMG.push(email + '_back.' + files.CMND_Back[0].filename.split('.').pop());
+
 
   // const user_repeat_email = await User.findOne({ email }).exec();
   // const valid_phone = await User.findOne({ phone }).exec();
@@ -398,6 +411,42 @@ exports.registerController = async (req, res) => {
   //   errors.push({ label: "email", err_message: "Email này đã được sử dụng" });
   // }
 
+  if (errors.length > 0) {
+    res.json({
+      status: 401,
+      errors,
+      message: "Có lỗi xảy ra!",
+    });
+  } else {
+    const token = jwt.sign(
+      {
+        full_name,
+        email,
+        password,
+        phone,
+        id_code,
+        be_member,
+        issued_by,
+        bank,
+        bank_account,
+        bank_name,
+        iden_type,
+        tax_code,
+        birthday,
+        gender,
+        invite_code,
+        donate_sales_id,
+        groupNumber,
+        buy_package,
+        id_time,
+        listNameIMG,
+      },
+      process.env.JWT_ACCOUNT_ACTIVATION,
+      { expiresIn: "15m" }
+    );
+
+    const oneYearFromNow = new Date();
+    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
   // if (valid_phone) {
   //   errors.push({
   //     label: "phone",
@@ -516,6 +565,32 @@ exports.registerController = async (req, res) => {
   //     buy_package,
   //   });
 
+
+    await newTransaction.save(function (err) {
+      if (err) {
+        console.log("fail to save transaction!");
+        res.json({
+          status: 200,
+          message: "fail to save transaction!",
+          errors: [
+            {
+              label: "transaction",
+              err_message: "Lỗi khi tạo giao dịch.Vui lòng thử lại sau",
+            },
+          ],
+        });
+      } else {
+        console.log("save transaction done!");
+
+        res.json({
+          status: 200,
+          message: "",
+          data: { email, full_name, phone },
+          errors,
+        });
+      }
+    });
+  }
   //   await newTransaction.save(function (err) {
   //     if (err) {
   //       console.log("fail to save transaction!");

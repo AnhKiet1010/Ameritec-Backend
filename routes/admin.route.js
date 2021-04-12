@@ -39,6 +39,6 @@ router.post('/update-admin/:id', updateAdmin);
 router.post('/edit-tree', editTree);
 router.post('/change-tree', changeTree);
 router.post('/create-admin', createAdmin);
-router.post('/uploadFile', upload.array('file'), uploadFile);
+router.post('/uploadFile', uploadFile);
 
 module.exports = router;
