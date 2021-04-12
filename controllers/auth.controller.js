@@ -363,6 +363,7 @@ exports.checkLinkController = async (req, res) => {
 };
 
 exports.registerController = async (req, res) => {
+  console.log("body", req.body);
   console.log("file images",req.files);
   const {
     full_name,
