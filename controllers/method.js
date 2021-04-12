@@ -356,30 +356,45 @@ exports.thankMail = (parentName, parentEmail, full_name) => {
   const emailData = {
     from: process.env.EMAIL_FROM,
     to: parentEmail,
-    subject: "💌 THƯ CẢM ƠN BẠN ĐÃ GIỚI THIỆU TÀI KHOẢN",
-    html: `<!DOCTYPE html>
-    <html lang="en">
-          <head>
-          <meta name="format-detection" content="telephone=no">
-          <meta name="format-detection" content="email=no">
-          <style>
-            ul {
-              list-type-style: none;
-            }
-          </style>
-          </head>
-          <body>
-              <h1>AMERITEC XIN CHÂN THÀNH CẢM ƠN</h1>
-                <ul>
-                  <li>Tài khoản : ${parentName} đã giới thiệu thành công Anh/Chị : ${full_name} tham gia vào hệ thống</li>
-                </ul>
-              <hr />
-              <p>Mọi thông tin xin vui lòng liên hệ</p>
-              <p>${process.env.CLIENT_URL}</p>
-              <p>Link đăng nhập</p>
-              <p>${process.env.CLIENT_URL}/login</p>
-          </body>
-          </html>
+    subject: "[AMERITEC] THƯ CẢM ƠN BẠN ĐÃ GIỚI THIỆU TÀI KHOẢN",
+    html: `<div style="margin: 50px ">
+
+    <div style="max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; align-items: center">
+      <div>
+        <img src="https://ameritecjsc.com/wp-content/themes/zimperium/assets/img/logo-ameritec-02.png" width="140px" alt="logo">
+      </div>
+      <div>
+      <p style="font-size: 20px">AIPS App ứng dụng bảo mật di động hàng đầu</p>
+      </div>
+      <div>
+        <p style="font-size: 18px">THƯ CẢM ƠN</p>
+      </div>
+      <div>
+        <p style="font-size: 18px">Chúc mừng ${parentName} đã giới thiệu thành công tài khoản <span style="font-weight: bold">${full_name}</span> tham gia vào gia đình Ameritec</p>
+      </div>
+      <div>
+        <p style="font-size: 18px; font-style: italic">Xin chân thành cảm ơn!</p>
+      </div>
+      
+    </div>
+    
+    <div>
+    <div>
+    <p style="font-size: 16px; color: #34495e">Mọi chi tiết vui lòng liên hệ : </p>
+    
+    <ul style="font-size: 16px; list-style-type: square; color: #34495e">
+      <li style="margin-bottom: 10px;">Văn phòng đại diện : Tầng 25.02 Tòa nhà Viettel số 285 cách mạng tháng 8 , P.12, Q.10, TP. Hồ Chí Minh</li>
+      <li style="margin-bottom: 10px;">Điện thoại di động: 028.2250.8166
+    </li>
+    <li style="margin-bottom: 10px;">Email: support@ameritecjsc.com
+    </li>
+    <li style="margin-bottom: 10px;">Website: https://ameritecjsc.com</li>
+    </ul>
+    <p style="color: gray">Bản quyền thuộc về Công Ty Cổ Phần Ameritec | 2020 - 2021</p>
+    
+    </div>
+    </div>
+    </div>
           `,
   };
 

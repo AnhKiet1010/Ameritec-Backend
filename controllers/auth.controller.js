@@ -15,9 +15,6 @@ sgMail.setApiKey(process.env.MAIL_KEY);
 
 const saltRounds = 10;
 
-
-
-
 const getActiveLink = async (email, full_name, phone, buy_package) => {
   let accessToken = "";
   let groupId = "";
@@ -156,41 +153,67 @@ const returnActiveAppMail = async (full_name, email, phone, links) => {
   const emailData = {
     from: process.env.EMAIL_FROM,
     to: email,
-    subject: "💌 ĐÃ KÍCH HOẠT TÀI KHOẢN THÀNH CÔNG",
-    html: `<!DOCTYPE html>
-    <html lang="en">
-          <head>
-          <meta name="format-detection" content="telephone=no">
-          <meta name="format-detection" content="email=no">
-          <style>
-            ul {
-              list-type: none;
-            }
-          </style>
-          </head>
-          <body>
-              <h1>THÔNG TIN</h1>
-                <ul>
-                  <li>Họ và Tên : ${full_name}</li>
-                  <li>Email : ${email}</li>
-                  <li>Số điện thoại : ${phone}</li>
-                  <li>Link giới thiệu : Vui lòng đăng nhập vào hệ thống để tạo <a href="${process.env.CLIENT_URL
-      }/login">link giới thiệu</a></li>
-                </ul>
-              <h1>ĐƯỜNG DẪN KÍCH HOẠT AIPS APP</h1>
-              <ul>
-              ${links.map((link, index) => {
-        return `<li>link ${index + 1} : <a href=${`https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}`}>nhấp vào đây để active</a></li>`;
-      })}
-              </ul>
-              <hr />
-              <p>Mọi thông tin xin vui lòng liên hệ</p>
-              <p>${process.env.CLIENT_URL}</p>
-              <p>Link đăng nhập</p>
-              <p>${process.env.CLIENT_URL}/login</p>
-          </body>
-          </html>
-          `,
+    subject: "[AMERITEC] ĐÃ KÍCH HOẠT TÀI KHOẢN THÀNH CÔNG",
+    html: `
+    <div style="margin: 50px ">
+
+<div style="max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; align-items: center">
+  <div>
+    <img src="https://ameritecjsc.com/wp-content/themes/zimperium/assets/img/logo-ameritec-02.png" width="140px" alt="logo">
+  </div>
+  <div>
+  <p style="font-size: 20px">AIPS App ứng dụng bảo mật di động hàng đầu</p>
+  </div>
+  <div>
+    <p style="font-size: 18px">Chúc mừng Bạn đã đăng ký thành công tài khoản tại <span style="font-weight: bold">Ameritec</span></p>
+  </div>
+  <div>
+  <p style="font-size: 17px;">Thông tin tài khoản</p>
+  </div>
+  <div>
+
+  <ul style="font-size: 16px; color: #34495e">
+  <li style="margin-bottom: 10px;">Họ và tên : ${full_name}</li>
+  <li style="margin-bottom: 10px;">Điện thoại di động: ${phone}
+</li>
+<li style="margin-bottom: 10px;">Email: ${email}
+</li>
+<li style="margin-bottom: 10px;">Link giới thiệu: Vui lòng truy cập vào <a href="${process.env.CLIENT_URL}/login">hệ thống</a> để tạo link giới thiệu.</li>
+</ul>
+</div>
+  <div>
+    <p style="font-size: 17px; color: #2c3e50">Đường dẫn kích hoạt AIPS App</p>
+  </div>
+  <div>
+
+  <ul style="font-size: 16px; color: #34495e">
+  ${
+    links.map((index,link) => {
+    return `<li style="margin-bottom: 10px;">Link ${index + 1} : <a href=https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}>AIPS APP ${index + 1}</a></li>`;
+    }) 
+  }
+</ul>
+</div>
+</div>
+
+<div>
+<div>
+<p style="font-size: 16px; color: #34495e">Mọi chi tiết vui lòng liên hệ : </p>
+
+<ul style="font-size: 16px; list-style-type: square; color: #34495e">
+  <li style="margin-bottom: 10px;">Văn phòng đại diện : Tầng 25.02 Tòa nhà Viettel số 285 cách mạng tháng 8 , P.12, Q.10, TP. Hồ Chí Minh</li>
+  <li style="margin-bottom: 10px;">Điện thoại di động: 028.2250.8166
+</li>
+<li style="margin-bottom: 10px;">Email: support@ameritecjsc.com
+</li>
+<li style="margin-bottom: 10px;">Website: https://ameritecjsc.com</li>
+</ul>
+<p style="color: gray">Bản quyền thuộc về Công Ty Cổ Phần Ameritec | 2020 - 2021</p>
+
+</div>
+</div>
+</div>
+    `,
   };
 
   sgMail.send(emailData, async (error, result) => {
@@ -303,7 +326,6 @@ const checkUpLevel = async (user, buy_package) => {
 
 exports.checkLinkController = async (req, res) => {
   const { invite_code, donate_sales_id, group } = req.body;
-  console.log(typeof group);
 
   if (
     invite_code.split("").length !== 24 ||
@@ -341,6 +363,7 @@ exports.checkLinkController = async (req, res) => {
 };
 
 exports.registerController = async (req, res) => {
+  console.log("file images",req.files);
   const {
     full_name,
     email,
@@ -376,86 +399,16 @@ exports.registerController = async (req, res) => {
   listNameIMG.push(email + '_back.' + files.CMND_Back[0].filename.split('.').pop());
 
 
-  const user_repeat_email = await User.findOne({ email }).exec();
-  const valid_phone = await User.findOne({ phone }).exec();
+  // const user_repeat_email = await User.findOne({ email }).exec();
+  // const valid_phone = await User.findOne({ phone }).exec();
 
-  await Transaction.deleteMany({ email, status: "pending" }).exec();
+  // await Transaction.deleteMany({ email, status: "pending" }).exec();
 
-  const errors = [];
+  // const errors = [];
 
-  if (user_repeat_email) {
-    errors.push({ label: "email", err_message: "Email này đã được sử dụng" });
-  }
-
-  if (valid_phone) {
-    errors.push({
-      label: "phone",
-      err_message: "Số điện thoại đã được sử dụng.Vui lòng chọn số khác",
-    });
-  }
-
-  if (be_member) {
-    if (id_code === "") {
-      errors.push({
-        label: "id_code",
-        err_message: "Vui lòng điền số CMND",
-      });
-    }
-    if (bank_account === "") {
-      errors.push({
-        label: "bank_account",
-        err_message: "Vui lòng điền số tài khoản của Bạn",
-      });
-    }
-    if (id_time === "") {
-      errors.push({
-        label: "id_time",
-        err_message: "Vui lòng chọn ngày cấp CMND",
-      });
-    }
-    if (issued_by === "") {
-      errors.push({
-        label: "issued_by",
-        err_message: "Vui lòng chọn nơi cấp CMND",
-      });
-    }
-    if (bank === "") {
-      errors.push({
-        label: "bank",
-        err_message: "Vui lòng chọn ngân hàng bạn đang sử dụng",
-      });
-    }
-    if (bank_name === "") {
-      errors.push({
-        label: "bank_name",
-        err_message: "Vui lòng điền tên tài khoản của Bạn",
-      });
-    }
-    const user_repeat_id_code = await User.findOne({ $and: [{ id_code: id_code }, { id_code: { $ne: "" } }] }).exec();
-    const user_repeat_bank_account = await User.findOne({
-      $and: [{ bank_account: bank_account }, { bank_account: { $ne: "" } }]
-    }).exec();
-    const user_repeat_tax_code = await User.findOne({ $and: [{ tax_code: tax_code }, { tax_code: { $ne: "" } }] }).exec();
-
-    if (user_repeat_id_code) {
-      errors.push({
-        label: "id_code",
-        err_message: "Số CMND đã được sử dụng",
-      });
-    }
-    if (user_repeat_bank_account) {
-      errors.push({
-        label: "bank_account",
-        err_message: "Số Tài Khoản này đã được sử dụng",
-      });
-    }
-    if (user_repeat_tax_code) {
-      errors.push({
-        label: "tax_code",
-        err_message: "Mã Số Thuế này đã được sử dụng",
-      });
-    }
-  }
+  // if (user_repeat_email) {
+  //   errors.push({ label: "email", err_message: "Email này đã được sử dụng" });
+  // }
 
   if (errors.length > 0) {
     res.json({
@@ -493,18 +446,123 @@ exports.registerController = async (req, res) => {
 
     const oneYearFromNow = new Date();
     oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+  // if (valid_phone) {
+  //   errors.push({
+  //     label: "phone",
+  //     err_message: "Số điện thoại đã được sử dụng.Vui lòng chọn số khác",
+  //   });
+  // }
 
-    const newTransaction = new Transaction({
-      status: "pending",
-      payment_method: "",
-      token,
-      created_time: new Date(),
-      created_by: full_name,
-      email,
-      phone,
-      expired_time: oneYearFromNow,
-      buy_package,
-    });
+  // if (be_member) {
+  //   if (id_code === "") {
+  //     errors.push({
+  //       label: "id_code",
+  //       err_message: "Vui lòng điền số CMND",
+  //     });
+  //   }
+  //   if (bank_account === "") {
+  //     errors.push({
+  //       label: "bank_account",
+  //       err_message: "Vui lòng điền số tài khoản của Bạn",
+  //     });
+  //   }
+  //   if (id_time === "") {
+  //     errors.push({
+  //       label: "id_time",
+  //       err_message: "Vui lòng chọn ngày cấp CMND",
+  //     });
+  //   }
+  //   if (issued_by === "") {
+  //     errors.push({
+  //       label: "issued_by",
+  //       err_message: "Vui lòng chọn nơi cấp CMND",
+  //     });
+  //   }
+  //   if (bank === "") {
+  //     errors.push({
+  //       label: "bank",
+  //       err_message: "Vui lòng chọn ngân hàng bạn đang sử dụng",
+  //     });
+  //   }
+  //   if (bank_name === "") {
+  //     errors.push({
+  //       label: "bank_name",
+  //       err_message: "Vui lòng điền tên tài khoản của Bạn",
+  //     });
+  //   }
+  //   const user_repeat_id_code = await User.findOne({ $and: [{ id_code: id_code }, { id_code: { $ne: "" } }] }).exec();
+  //   const user_repeat_bank_account = await User.findOne({
+  //     $and: [{ bank_account: bank_account }, { bank_account: { $ne: "" } }]
+  //   }).exec();
+  //   const user_repeat_tax_code = await User.findOne({ $and: [{ tax_code: tax_code }, { tax_code: { $ne: "" } }] }).exec();
+
+  //   if (user_repeat_id_code) {
+  //     errors.push({
+  //       label: "id_code",
+  //       err_message: "Số CMND đã được sử dụng",
+  //     });
+  //   }
+  //   if (user_repeat_bank_account) {
+  //     errors.push({
+  //       label: "bank_account",
+  //       err_message: "Số Tài Khoản này đã được sử dụng",
+  //     });
+  //   }
+  //   if (user_repeat_tax_code) {
+  //     errors.push({
+  //       label: "tax_code",
+  //       err_message: "Mã Số Thuế này đã được sử dụng",
+  //     });
+  //   }
+  // }
+
+  // if (errors.length > 0) {
+  //   res.json({
+  //     status: 401,
+  //     errors,
+  //     message: "Có lỗi xảy ra!",
+  //   });
+  // } else {
+  //   const token = jwt.sign(
+  //     {
+  //       full_name,
+  //       email,
+  //       password,
+  //       phone,
+  //       id_code,
+  //       be_member,
+  //       issued_by,
+  //       bank,
+  //       bank_account,
+  //       bank_name,
+  //       iden_type,
+  //       tax_code,
+  //       birthday,
+  //       gender,
+  //       invite_code,
+  //       donate_sales_id,
+  //       groupNumber,
+  //       buy_package,
+  //       id_time,
+  //     },
+  //     process.env.JWT_ACCOUNT_ACTIVATION,
+  //     { expiresIn: "15m" }
+  //   );
+
+  //   const oneYearFromNow = new Date();
+  //   oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+  //   const newTransaction = new Transaction({
+  //     status: "pending",
+  //     payment_method: "",
+  //     token,
+  //     created_time: new Date(),
+  //     created_by: full_name,
+  //     email,
+  //     phone,
+  //     expired_time: oneYearFromNow,
+  //     buy_package,
+  //   });
 
 
     await newTransaction.save(function (err) {
@@ -532,7 +590,32 @@ exports.registerController = async (req, res) => {
       }
     });
   }
+  //   await newTransaction.save(function (err) {
+  //     if (err) {
+  //       console.log("fail to save transaction!");
+  //       res.json({
+  //         status: 200,
+  //         message: "fail to save transaction!",
+  //         errors: [
+  //           {
+  //             label: "transaction",
+  //             err_message: "Lỗi khi tạo giao dịch.Vui lòng thử lại sau",
+  //           },
+  //         ],
+  //       });
+  //     } else {
+  //       console.log("save transaction done!");
+  //       res.json({
+  //         status: 200,
+  //         message: "",
+  //         data: { email, full_name, phone },
+  //         errors,
+  //       });
+  //     }
+  //   });
+  // }
 };
+
 async function processDataActivation(token) {
   if (token) {
     const transaction = Transaction.findOne({ token }).exec();
@@ -846,6 +929,7 @@ async function processDataActivation(token) {
     });
   }
 }
+
 exports.activationController = async (req, res) => {
   const { token } = req.body;
   if (token) {
