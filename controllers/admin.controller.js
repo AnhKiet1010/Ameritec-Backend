@@ -153,6 +153,7 @@ const countTotalChildMember = async (subTreeIdList) => {
   }
   return count;
 };
+
 exports.postLogin = async (req, res) => {
   const { acc, password } = req.body;
 
@@ -530,13 +531,13 @@ const getTreeOfOneAgency = async (searchId) => {
 exports.getTree = async (req, res) => {
   const { id, search } = req.params;
   var listAgency = [];
+  const invite_code = process.env.INVITE_CODE;
 
   if (id === search) {
-    listAgency = [... (await User.find({ parentId: search }).exec())];
+    listAgency = [... (await User.find({ parentId: invite_code }).exec())];
   } else {
     listAgency = [... (await User.find({ _id: search }).exec())];
   }
-
 
   const listAllUser = await User.find({ role: { $ne: 'admin' } }).select("full_name").exec();
 
@@ -566,33 +567,69 @@ exports.getTree = async (req, res) => {
 };
 
 exports.createAdmin = async (req, res) => {
-  try {
-    const admin = req.body;
-    var user = await User.findOne({ role: "admin", email: admin.email }).exec();
-    if (user === null) {
-      await User.insertMany(admin);
-      var adminnew = await User.findOne({ role: "admin", email: admin.email }).exec();
-      res.status(201).json({
-        errors: [],
-        data: {
-          adminnew
-        },
-        message: "email has been take by another!"
-      });
-    }
-    else {
-      res.status(500).json({
-        errors: [],
-        message: "email has been take by another!"
-      });
-    }
-  } catch (error) {
-    res.status(500).json({
-      errors: error.message,
-      message: ""
-    });
+  console.log("body", req.body);
+  var errors = [];
+  const { email, phone, password, full_name } = req.body;
+  var validUserEmail = await User.findOne({ email }).exec();
+  var validUserPhone = await User.findOne({ phone }).exec();
+
+  if(validUserEmail) {
+    errors.push({label: "email", err_message: "Email đã được sử dụng"});
   }
 
+  if(validUserPhone) {
+    errors.push({label: "phone", err_message: "Số điện thoại đã được sử dụng"});
+  }
+
+
+  if (errors.length === 0) {
+
+    const listCharacterOfName = full_name.split(" ");
+    const avatarKey = `${listCharacterOfName[listCharacterOfName.length - 2]}+${listCharacterOfName[listCharacterOfName.length - 1]}`;
+
+    bcrypt.genSalt(saltRounds, function (err, salt) {
+      bcrypt.hash(password, salt, async function (err, hash) {
+        if (err) {
+          console.log(err);
+          return res.json(err);
+        } else {
+          const user = new User({
+            full_name,
+            email,
+            phone,
+            password: hash,
+            point: 0,
+            level: 0,
+            amount: 0,
+            avatar: `https://ui-avatars.com/api/?name=${avatarKey}&background=random`,
+            role: "admin",
+            parentId: "",
+            be_member: true
+          });
+
+          user.save((err) => {
+            if(err) {
+              console.log(err);
+            } else {
+              res.json({
+                status: 200,
+                errors: [],
+                data: {},
+                message: "Đã Admin thành công"
+              });
+            }
+          })
+        }
+      });
+    });
+  }
+  else {
+    res.json({
+      status: 401,
+      errors,
+      message: "Có lỗi xảy ra!"
+    });
+  }
 }
 
 exports.updateAdmin = async (req, res) => {

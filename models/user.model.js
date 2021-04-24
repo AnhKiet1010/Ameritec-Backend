@@ -84,6 +84,12 @@ const userSchema = new mongoose.Schema(
     iden_type: {
       type: Number
     },
+    idenMT: {
+      type: String
+    },
+    idenMS: {
+      type: String
+    },
     tax_code: {
       type: String
     },
