@@ -81,10 +81,10 @@ const userSchema = new mongoose.Schema(
     bank_name: {
       type: String
     },
-    idenMT: {
+    cmndMT: {
       type: String
     },
-    idenMS: {
+    cmndMS: {
       type: String
     },
     tax_code: {

@@ -25,9 +25,6 @@ const tranSchema = new mongoose.Schema(
     email: {
       type: String
     },
-    idimage: {
-      type: Array
-    },
     payment_method: {
       type: String,
       default: ''
