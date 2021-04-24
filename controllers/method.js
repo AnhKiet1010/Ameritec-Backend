@@ -332,7 +332,7 @@ exports.getSubUserListAndChildNumber = async (current_user_id) => {
   return { subTreeIdList, subUserListAndChild };
 };
 
-const updateParent = async (id, buy_package) => {
+exports.updateParent = async (id, buy_package, checkUpLevel) => {
   const parent = await User.findOne({ _id: id }).exec();
   console.log("findParentToUpdate", parent);
   const checkUp = await checkUpLevel(parent, buy_package);
@@ -788,7 +788,7 @@ const getListChildId = async (id) => {
   return [...group1, ...group2, ...group3];
 }
 
-const checkUpLevel = async (user, buy_package) => {
+exports.checkUpLevel = async (user, buy_package) => {
   if (buy_package === 1) {
     return;
   } else {

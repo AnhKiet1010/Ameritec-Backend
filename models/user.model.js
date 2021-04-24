@@ -72,9 +72,6 @@ const userSchema = new mongoose.Schema(
     bank_name: {
       type: String
     },
-    iden_type: {
-      type: Number
-    },
     idenMT: {
       type: String
     },

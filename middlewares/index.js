@@ -57,3 +57,18 @@ exports.checkAdminPost = (req, res, next) => {
   }
 }
 
+exports.checkMember = async (req, res, next) => {
+  const { id } = req.params;
+
+  const user = await User.findOne({_id: id}).exec();
+
+  if(user.be_member) {
+    next();
+  } else {
+    res.json({
+      status: "401",
+      message: "Vui lòng nâng cấp tài khoản"
+    });
+  }
+}
+
