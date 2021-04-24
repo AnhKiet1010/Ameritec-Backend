@@ -136,7 +136,135 @@ exports.countTotalPersonPackage = async (subTreeIdList, countLevel, level) => {
   }
 };
 
+const countTotalPersonPackage = async (subTreeIdList, countLevel, level) => {
+  var count = 0;
+  for (let id of subTreeIdList) {
+    let branchObject = await Tree.findOne({ parent: id })
+      .select("buy_package")
+      .exec();
+    if (branchObject.buy_package === "1") {
+      count++;
+    }
+  }
+
+  if (countLevel === level) {
+    return count;
+  } else {
+    for (let i = 0; i < subTreeIdList.length; i++) {
+      let branchObject = await Tree.findOne({ parent: subTreeIdList[i]._id })
+        .select("group1 group2 group3 buy_package")
+        .exec();
+
+      console.log("buy!!!!!!", branchObject.buy_package);
+
+      if (branchObject) {
+        let group = [
+          ...branchObject.group1,
+          ...branchObject.group2,
+          ...branchObject.group3,
+        ];
+        if (group.length !== 0 && branchObject.buy_package === "1") {
+          count += await countTotalChildMemberForLevel(
+            group,
+            countLevel++,
+            level
+          );
+        } else {
+          return count;
+        }
+      } else {
+        continue;
+      }
+    }
+  }
+};
+
 exports.getData = async (group, parentIn) => {
+  let kq = [];
+
+  for (let i of group) {
+    let parent = await User.findOne({ _id: i })
+      .select(
+        "full_name child1 child2 child3 countChild avatar groupNumber level buy_package"
+      )
+      .exec();
+    let listGroup = await getListChildId(parent._id);
+    if (listGroup.length > 0) {
+      for (let id of listGroup) {
+        let child = await User.findOne({ _id: id })
+          .select(
+            "full_name child1 child2 child3 countChild avatar groupNumber level buy_package"
+          )
+          .exec();
+        if (child.groupNumber === "1") {
+          parent.child1.arr.push(child);
+          parent.child1.countChild = await countTotalChildMember(
+            parent.child1.arr.map((item) => item._id)
+          );
+        } else if (child.groupNumber === "2") {
+          parent.child2.arr.push(child);
+          parent.child2.countChild = await countTotalChildMember(
+            parent.child2.arr.map((item) => item._id)
+          );
+        } else if (child.groupNumber === "3") {
+          parent.child3.arr.push(child);
+          parent.child3.countChild = await countTotalChildMember(
+            parent.child3.arr.map((item) => item._id)
+          );
+        }
+        let listGroupOfChild = await getListChildId(child._id);
+        parent.countChild = await countTotalChildMember(listGroup);
+        child.countChild = await countTotalChildMember(listGroupOfChild);
+        await getData(listGroupOfChild, child);
+      }
+      if (parentIn) {
+        if (parent.groupNumber === "1") {
+          parentIn.child1.arr.push(parent);
+          parentIn.child1.countChild = await countTotalChildMember(
+            parentIn.child1.arr.map((item) => item._id)
+          );
+        } else if (parent.groupNumber === "2") {
+          parentIn.child2.arr.push(parent);
+          parentIn.child2.countChild = await countTotalChildMember(
+            parentIn.child2.arr.map((item) => item._id)
+          );
+        } else if (parent.groupNumber === "3") {
+          parentIn.child3.arr.push(parent);
+          parentIn.child3.countChild = await countTotalChildMember(
+            parentIn.child3.arr.map((item) => item._id)
+          );
+        }
+      } else {
+        kq.push(parent);
+      }
+    } else {
+      if (parentIn) {
+        if (parent.groupNumber === "1") {
+          parentIn.child1.arr.push(parent);
+          parentIn.child1.countChild = await countTotalChildMember(
+            parentIn.child1.arr.map((item) => item._id)
+          );
+        } else if (parent.groupNumber === "2") {
+          parentIn.child2.arr.push(parent);
+          parentIn.child2.countChild = await countTotalChildMember(
+            parentIn.child2.arr.map((item) => item._id)
+          );
+        } else if (parent.groupNumber === "3") {
+          parentIn.child3.arr.push(parent);
+          parentIn.child3.countChild = await countTotalChildMember(
+            parentIn.child3.arr.map((item) => item._id)
+          );
+        }
+      } else {
+        kq.push(parent);
+      }
+      continue;
+    }
+  }
+  return kq;
+};
+
+const getData = async (group, parentIn) => {
   let kq = [];
 
   for (let i of group) {
@@ -247,6 +375,20 @@ exports.getResult = async (group, kq) => {
   return kq;
 };
 
+const getFullChildren = async (group, kq) => {
+  for (let id of group) {
+    let parent = await User.findOne({ _id: id }).select("full_name").exec();
+    kq.push(parent);
+    let listGroup = await getListChildId(id);
+    if (listGroup.length > 0) {
+      await getFullChildren(listGroup, kq);
+    } else {
+      continue;
+    }
+  }
+  return kq;
+};
+
 exports.getFullChildren = async (group, kq) => {
   for (let id of group) {
     let parent = await User.findOne({ _id: id }).select("full_name").exec();
@@ -272,6 +414,32 @@ exports.getListChildId = async (id) => {
 };
 
 exports.countTotalChildMember = async (subTreeIdList) => {
+  var count = subTreeIdList.length;
+
+  for (let i = 0; i < subTreeIdList.length; i++) {
+    let branchObject = await Tree.findOne({ parent: subTreeIdList[i]._id })
+      .select("group1 group2 group3")
+      .exec();
+
+    if (branchObject) {
+      let group = [
+        ...branchObject.group1,
+        ...branchObject.group2,
+        ...branchObject.group3,
+      ];
+      if (group.length !== 0) {
+        count += await countTotalChildMember(group);
+      } else {
+        continue;
+      }
+    } else {
+      continue;
+    }
+  }
+  return count;
+};
+
+const countTotalChildMember = async (subTreeIdList) => {
   var count = subTreeIdList.length;
 
   for (let i = 0; i < subTreeIdList.length; i++) {

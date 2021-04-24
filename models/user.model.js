@@ -13,17 +13,26 @@ const userSchema = new mongoose.Schema(
     full_name: {
       type: String
     },
+    id_ameritecjsc: {
+      type: String
+    },
+    user_registered: {
+      type: String
+    },
+    user_login: {
+      type: String
+    },
     password: {
       type: String,
       required: true
     },
-    gender : {
+    gender: {
       type: Number,
     },
-    birthday : {
+    birthday: {
       type: String,
     },
-    phone : {
+    phone: {
       type: String,
       trim: true,
     },

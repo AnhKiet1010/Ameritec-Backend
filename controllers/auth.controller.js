@@ -15,6 +15,18 @@ sgMail.setApiKey(process.env.MAIL_KEY);
 
 const saltRounds = 10;
 
+
+const randomstring = (length = 1) => {
+  var result = [];
+  var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  var charactersLength = characters.length;
+  for (var i = 0; i < length; i++) {
+    result.push(characters.charAt(Math.floor(Math.random() *
+      charactersLength)));
+  }
+  return result.join('');
+}
+
 const getActiveLink = async (email, full_name, phone, buy_package) => {
   let accessToken = "";
   let groupId = "";
@@ -346,10 +358,7 @@ exports.registerController = async (req, res) => {
         birthday,
         gender,
         invite_code,
-        donate_sales_id,
-        groupNumber,
         buy_package,
-        id_time,
       },
       process.env.JWT_ACCOUNT_ACTIVATION,
       { expiresIn: "15m" }
