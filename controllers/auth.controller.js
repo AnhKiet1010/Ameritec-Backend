@@ -17,7 +17,16 @@ const saltRounds = 10;
 
 
 
-
+const randomstring = (length = 1) => {
+  var result = [];
+  var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  var charactersLength = characters.length;
+  for (var i = 0; i < length; i++) {
+    result.push(characters.charAt(Math.floor(Math.random() *
+      charactersLength)));
+  }
+  return result.join('');
+}
 const getActiveLink = async (email, full_name, phone, buy_package) => {
   let accessToken = "";
   let groupId = "";
@@ -364,12 +373,13 @@ exports.registerController = async (req, res) => {
   } = req.body;
   const files = req.files;
   const listNameIMG = [];
-  fs.rename('./' + files.CMND_Front[0].path, './public/uploads/trans/' + email + '_front.' + files.CMND_Front[0].filename.split('.').pop(), (err) => {
+  const name = randomstring(20);
+  fs.rename('./' + files.CMND_Front[0].path, './public/uploads/trans/' + name + '_front.' + files.CMND_Front[0].filename.split('.').pop(), (err) => {
     if (err) console.log(err);
     console.log('Rename Front complete!');
   });
   listNameIMG.push(email + '_front.' + files.CMND_Front[0].filename.split('.').pop());
-  fs.rename('./' + files.CMND_Back[0].path, './public/uploads/trans/' + email + '_back.' + files.CMND_Back[0].filename.split('.').pop(), (err) => {
+  fs.rename('./' + files.CMND_Back[0].path, './public/uploads/trans/' + name + '_back.' + files.CMND_Back[0].filename.split('.').pop(), (err) => {
     if (err) console.log(err);
     console.log('Rename Back complete!');
   });
@@ -504,6 +514,7 @@ exports.registerController = async (req, res) => {
       phone,
       expired_time: oneYearFromNow,
       buy_package,
+      idimage: listNameIMG
     });
 
 

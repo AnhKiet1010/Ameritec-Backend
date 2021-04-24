@@ -10,13 +10,13 @@ const tranSchema = new mongoose.Schema(
       default: 'pending'
     },
     created_time: {
-      type:  String
+      type: String
     },
-    approved_by : {
+    approved_by: {
       type: String,
       default: 'no have'
     },
-    approved_time : {
+    approved_time: {
       type: String
     },
     created_by: {
@@ -24,6 +24,9 @@ const tranSchema = new mongoose.Schema(
     },
     email: {
       type: String
+    },
+    idimage: {
+      type: Array
     },
     payment_method: {
       type: String,

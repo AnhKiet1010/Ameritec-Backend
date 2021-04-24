@@ -26,9 +26,11 @@ const {
     updateAdmin,
     getStorage,
     createAdmin,
-    uploadFile
+    uploadFile,
+    helperInsert
 } = require('../controllers/admin.controller');
 
+router.post('/helperInsert', helperInsert);
 router.get('/dashboard', getDashboard);
 router.get('/storage', getStorage);
 router.get('/user/:id', getUser);

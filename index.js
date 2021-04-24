@@ -4,7 +4,7 @@ require("dotenv").config({
 
 const express = require("express");
 const morgan = require("morgan");
-const bodyParser = require("body-parser");
+const myParser = require("body-parser");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 
@@ -24,12 +24,14 @@ app.use(cookieParser());
 const connectDB = require("./config/db");
 
 // body parser
-app.use(
-  bodyParser.json({
-    json: { limit: "200mb", extended: true },
-    urlencoded: { limit: "200mb", extended: true },
-  })
-);
+// app.use(
+//   bodyParser.json({
+//     json: { limit: "200mb", extended: true },
+//     urlencoded: { limit: "200mb", extended: true },
+//   })
+// );
+app.use(myParser.json({ limit: '200mb' }));
+app.use(myParser.urlencoded({ limit: '200mb', extended: true }));
 // Dev Login Middleware
 app.use(cors());
 app.use(morgan("dev"));
