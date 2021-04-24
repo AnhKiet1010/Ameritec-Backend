@@ -4,21 +4,6 @@ const Tree = require("../models/tree.model");
 const Transaction = require("../models/transaction.model");
 const { PROVINCES } = require("../constants/province");
 const jwt = require("jsonwebtoken");
-var fs = require('fs');
-var path = require('path')
-
-exports.uploadFile = async (req, res,) => {
-  // fs.unlink('.public/upload/trans/' + "607332d3ba134f1cb4498e64" + "_back", function (err) {
-  //   if (err) console.log(err);
-  //   // if no error, file has been deleted successfully
-  //   console.log('File back deleted!');
-  // });
-
-  res.json({
-    status: 200,
-    errors: [path.extname('.public/upload/trans/' + "607332d3ba134f1cb4498e64" + "_back")],
-  });
-};
 
 exports.helperInsert = async (req, res,) => {
   var listSugarDaddies = req.body.listSugarDaddy;

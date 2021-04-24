@@ -6,29 +6,23 @@ const express = require("express");
 const morgan = require("morgan");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const cookieParser = require("cookie-parser");
 
 const CronJob = require("cron").CronJob;
-const aws = require('aws-sdk');
-const email = "ameritec110919@gmail.com";
-// Load your AWS credentials and try to instantiate the object.
-aws.config.loadFromPath(__dirname + '/config.json');
-
-// Instantiate SES.
-const ses = new aws.SES();
 
 const app = express();
-
-app.use(cookieParser());
 
 const connectDB = require("./config/db");
 
 
 
 // parse application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({ limit: '500mb', extended: false }))
+app.use(express.json());
+
 // parse application/json
-app.use(bodyParser.json({ limit: '500mb', extended: true }))
+app.use(express.urlencoded({
+  extended: true
+}));
+
 // Dev Login Middleware
 app.use(cors());
 app.use(morgan("dev"));

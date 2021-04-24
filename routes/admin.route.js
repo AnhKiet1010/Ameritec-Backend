@@ -25,9 +25,7 @@ const {
     getUser,
     updateAdmin,
     getStorage,
-    createAdmin,
-    uploadFile,
-    helperInsert
+    createAdmin
 } = require('../controllers/admin.controller');
 
 router.post('/helperInsert', helperInsert);
@@ -41,6 +39,5 @@ router.post('/update-admin/:id', updateAdmin);
 router.post('/edit-tree', editTree);
 router.post('/change-tree', changeTree);
 router.post('/create-admin', createAdmin);
-router.post('/uploadFile', uploadFile);
 
 module.exports = router;

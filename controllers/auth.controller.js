@@ -4,7 +4,7 @@ const Tree = require("../models/tree.model");
 const Commission = require("../models/commission.model");
 const Activation = require("../models/activation.model");
 const axios = require("axios");
-const { thankMail } = require("./method");
+const { thankMail, successMail, updateParent, checkUpLevel } = require("./method");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const sgMail = require("@sendgrid/mail");
@@ -161,180 +161,6 @@ const getActiveLink = async (email, full_name, phone, buy_package) => {
   return links;
 };
 
-const returnActiveAppMail = async (full_name, email, phone, links) => {
-  const emailData = {
-    from: process.env.EMAIL_FROM,
-    to: email,
-    subject: "[AMERITEC] ĐÃ KÍCH HOẠT TÀI KHOẢN THÀNH CÔNG",
-    html: `
-    <div style="margin: 50px ">
-
-<div style="max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; align-items: center">
-  <div>
-    <img src="https://ameritecjsc.com/wp-content/themes/zimperium/assets/img/logo-ameritec-02.png" width="140px" alt="logo">
-  </div>
-  <div>
-  <p style="font-size: 20px">AIPS App ứng dụng bảo mật di động hàng đầu</p>
-  </div>
-  <div>
-    <p style="font-size: 18px">Chúc mừng Bạn đã đăng ký thành công tài khoản tại <span style="font-weight: bold">Ameritec</span></p>
-  </div>
-  <div>
-  <p style="font-size: 17px;">Thông tin tài khoản</p>
-  </div>
-  <div>
-
-  <ul style="font-size: 16px; color: #34495e">
-  <li style="margin-bottom: 10px;">Họ và tên : ${full_name}</li>
-  <li style="margin-bottom: 10px;">Điện thoại di động: ${phone}
-</li>
-<li style="margin-bottom: 10px;">Email: ${email}
-</li>
-<li style="margin-bottom: 10px;">Link giới thiệu: Vui lòng truy cập vào <a href="${process.env.CLIENT_URL}/login">hệ thống</a> để tạo link giới thiệu.</li>
-</ul>
-</div>
-  <div>
-    <p style="font-size: 17px; color: #2c3e50">Đường dẫn kích hoạt AIPS App</p>
-  </div>
-  <div>
-
-  <ul style="font-size: 16px; color: #34495e">
-  ${links.map((index, link) => {
-      return `<li style="margin-bottom: 10px;">Link ${index + 1} : <a href=https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}>AIPS APP ${index + 1}</a></li>`;
-    })
-      }
-</ul>
-</div>
-</div>
-
-<div>
-<div>
-<p style="font-size: 16px; color: #34495e">Mọi chi tiết vui lòng liên hệ : </p>
-
-<ul style="font-size: 16px; list-style-type: square; color: #34495e">
-  <li style="margin-bottom: 10px;">Văn phòng đại diện : Tầng 25.02 Tòa nhà Viettel số 285 cách mạng tháng 8 , P.12, Q.10, TP. Hồ Chí Minh</li>
-  <li style="margin-bottom: 10px;">Điện thoại di động: 028.2250.8166
-</li>
-<li style="margin-bottom: 10px;">Email: support@ameritecjsc.com
-</li>
-<li style="margin-bottom: 10px;">Website: https://ameritecjsc.com</li>
-</ul>
-<p style="color: gray">Bản quyền thuộc về Công Ty Cổ Phần Ameritec | 2020 - 2021</p>
-
-</div>
-</div>
-</div>
-    `,
-  };
-
-  sgMail.send(emailData, async (error, result) => {
-    if (error) {
-      console.log("error when send email success!");
-      return false;
-    } else {
-      console.log("success mail sended!!!!");
-      return true;
-    }
-  });
-};
-
-const updateParent = async (id, buy_package) => {
-  const parent = await User.findOne({ _id: id }).exec();
-  const checkUp = await checkUpLevel(parent, buy_package);
-
-  await User.findOneAndUpdate(
-    { _id: parent._id },
-    {
-      point: buy_package === "1" ? parent.point + 0.25 : parent.point + 1,
-      level: checkUp ? parent.level + 1 : parent.level,
-    }
-  );
-
-  if (parent.parentId === "") {
-    return;
-  } else {
-    await updateParent(parent.parentId, buy_package);
-  }
-};
-
-const checkUpLevel = async (user, buy_package) => {
-  if (buy_package === 1) {
-    return;
-  } else {
-    var targetNumber;
-    var countLevel;
-    switch (user.level) {
-      case 0:
-        targetNumber = process.env.STEP1_NUMBER;
-        countLevel = 0;
-        break;
-      case 1:
-        targetNumber = process.env.STEP2_NUMBER;
-        countLevel = 1;
-        break;
-      case 2:
-        targetNumber = process.env.STEP3_NUMBER;
-        countLevel = 2;
-        break;
-      case 3:
-        targetNumber = process.env.STEP4_NUMBER;
-        countLevel = 3;
-        break;
-      case 4:
-        targetNumber = process.env.STEP5_NUMBER;
-        countLevel = 4;
-        break;
-      case 5:
-        targetNumber = process.env.STEP6_NUMBER;
-        countLevel = 5;
-        break;
-      default:
-        targetNumber = 0;
-        countLevel = 0;
-    }
-
-    const treeOfUser = await Tree.findOne({ parent: user._id })
-      .select("group1 group2 group3")
-      .exec();
-    const listChildAllGroupOfUser = [
-      ...treeOfUser.group1,
-      ...treeOfUser.group2,
-      ...treeOfUser.group3,
-    ];
-    const totalChildMember =
-      (await countTotalChildMemberForLevel(listChildAllGroupOfUser)) + 1;
-    const totalChildMemberGroup1 = await countTotalChildMemberForLevel(
-      [...treeOfUser.group1],
-      0,
-      countLevel
-    );
-    const totalChildMemberGroup2 = await countTotalChildMemberForLevel(
-      [...treeOfUser.group2],
-      0,
-      countLevel
-    );
-    const totalChildMemberGroup3 = await countTotalChildMemberForLevel(
-      [...treeOfUser.group3],
-      0,
-      countLevel
-    );
-    console.log("nhóm 1", totalChildMemberGroup1);
-    console.log("nhóm 2", totalChildMemberGroup2);
-    console.log("nhóm 3", totalChildMemberGroup3);
-    console.log("tất cả", totalChildMember);
-    console.log("target", targetNumber);
-    if (totalChildMember < targetNumber) {
-      return false;
-    } else if (
-      totalChildMemberGroup1 >= Math.floor(parseInt(targetNumber) / 4) &&
-      totalChildMemberGroup2 >= Math.floor(parseInt(targetNumber) / 4) &&
-      totalChildMemberGroup3 >= Math.floor(parseInt(targetNumber) / 4)
-    ) {
-      return true;
-    }
-  }
-};
-
 exports.checkLinkController = async (req, res) => {
   const { invite_code, donate_sales_id, group } = req.body;
 
@@ -374,6 +200,7 @@ exports.checkLinkController = async (req, res) => {
 };
 
 exports.registerController = async (req, res) => {
+  console.log("body", req.body);
   console.log("file images", req.files);
   const {
     full_name,
@@ -396,31 +223,116 @@ exports.registerController = async (req, res) => {
     buy_package,
     id_time,
   } = req.body;
-  const files = req.files;
-  const listNameIMG = [];
-  const name = randomstring(20);
-  fs.rename('./' + files.CMND_Front[0].path, './public/uploads/trans/' + name + '_front.' + files.CMND_Front[0].filename.split('.').pop(), (err) => {
-    if (err) console.log(err);
-    console.log('Rename Front complete!');
-  });
-  listNameIMG.push(email + '_front.' + files.CMND_Front[0].filename.split('.').pop());
-  fs.rename('./' + files.CMND_Back[0].path, './public/uploads/trans/' + name + '_back.' + files.CMND_Back[0].filename.split('.').pop(), (err) => {
-    if (err) console.log(err);
-    console.log('Rename Back complete!');
-  });
-  listNameIMG.push(email + '_back.' + files.CMND_Back[0].filename.split('.').pop());
 
+  const user_repeat_email = await User.findOne({ email }).exec();
+  const valid_phone = await User.findOne({ phone }).exec();
 
-  // const user_repeat_email = await User.findOne({ email }).exec();
-  // const valid_phone = await User.findOne({ phone }).exec();
+  await Transaction.deleteMany({ email, status: "pending" }).exec();
 
-  // await Transaction.deleteMany({ email, status: "pending" }).exec();
+  const errors = [];
 
-  // const errors = [];
+  if (user_repeat_email) {
+    errors.push({ label: "email", err_message: "Email này đã được sử dụng" });
+  }
 
-  // if (user_repeat_email) {
-  //   errors.push({ label: "email", err_message: "Email này đã được sử dụng" });
-  // }
+  if (valid_phone) {
+    errors.push({
+      label: "phone",
+      err_message: "Số điện thoại đã được sử dụng.Vui lòng chọn số khác",
+    });
+  }
+
+  if (be_member !== 'false') {
+
+    const files = req.files;
+
+    if (files.CMND_Front && files.CMND_Back) {
+      const listNameIMG = [];
+      fs.rename('./' + files.CMND_Front[0].path, './public/uploads/CMND/' + email + '_front.' + files.CMND_Front[0].filename.split('.').pop(), (err) => {
+        if (err) console.log(err);
+        console.log('Rename Front complete!');
+      });
+      listNameIMG.push(email + '_front.' + files.CMND_Front[0].filename.split('.').pop());
+      fs.rename('./' + files.CMND_Back[0].path, './public/uploads/CMND/' + email + '_back.' + files.CMND_Back[0].filename.split('.').pop(), (err) => {
+        if (err) console.log(err);
+        console.log('Rename Back complete!');
+      });
+      listNameIMG.push(email + '_back.' + files.CMND_Back[0].filename.split('.').pop());
+    } else {
+      errors.push({
+        label: "CMND_Front",
+        err_message: "Vui lòng tải lên mặt trước CMND",
+      },
+        {
+          label: "CMND_Back",
+          err_message: "Vui lòng tải lên mặt sau CMND",
+        });
+    }
+
+    if (id_code === "") {
+      errors.push({
+        label: "id_code",
+        err_message: "Vui lòng điền số CMND",
+      });
+    }
+    if (bank_account === "") {
+      errors.push({
+        label: "bank_account",
+        err_message: "Vui lòng điền số tài khoản của Bạn",
+      });
+    }
+    if (id_time === "") {
+      errors.push({
+        label: "id_time",
+        err_message: "Vui lòng chọn ngày cấp CMND",
+      });
+    }
+    if (issued_by === "") {
+      errors.push({
+        label: "issued_by",
+        err_message: "Vui lòng chọn nơi cấp CMND",
+      });
+    }
+
+    if (bank === "") {
+      errors.push({
+        label: "bank",
+        err_message: "Vui lòng chọn ngân hàng bạn đang sử dụng",
+      });
+    }
+
+    if (bank_name === "") {
+      errors.push({
+        label: "bank_name",
+        err_message: "Vui lòng điền tên tài khoản của Bạn",
+      });
+    }
+
+    const user_repeat_id_code = await User.findOne({ $and: [{ id_code: id_code }, { id_code: { $ne: "" } }] }).exec();
+    const user_repeat_bank_account = await User.findOne({
+      $and: [{ bank_account: bank_account }, { bank_account: { $ne: "" } }]
+    }).exec();
+    const user_repeat_tax_code = await User.findOne({ $and: [{ tax_code: tax_code }, { tax_code: { $ne: "" } }] }).exec();
+
+    if (user_repeat_id_code) {
+      errors.push({
+        label: "id_code",
+        err_message: "Số CMND đã được sử dụng",
+      });
+    }
+    if (user_repeat_bank_account) {
+      errors.push({
+        label: "bank_account",
+        err_message: "Số Tài Khoản này đã được sử dụng",
+      });
+    }
+    if (user_repeat_tax_code) {
+      errors.push({
+        label: "tax_code",
+        err_message: "Mã Số Thuế này đã được sử dụng",
+      });
+    }
+  }
 
   if (errors.length > 0) {
     res.json({
@@ -446,11 +358,7 @@ exports.registerController = async (req, res) => {
         birthday,
         gender,
         invite_code,
-        donate_sales_id,
-        groupNumber,
         buy_package,
-        id_time,
-        listNameIMG,
       },
       process.env.JWT_ACCOUNT_ACTIVATION,
       { expiresIn: "15m" }
@@ -458,13 +366,6 @@ exports.registerController = async (req, res) => {
 
     const oneYearFromNow = new Date();
     oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-    // if (valid_phone) {
-    //   errors.push({
-    //     label: "phone",
-    //     err_message: "Số điện thoại đã được sử dụng.Vui lòng chọn số khác",
-    //   });
-    // }
-
 
     const newTransaction = new Transaction({
       status: "pending",
@@ -476,120 +377,7 @@ exports.registerController = async (req, res) => {
       phone,
       expired_time: oneYearFromNow,
       buy_package,
-      idimage: listNameIMG
     });
-
-    // if (be_member) {
-    //   if (id_code === "") {
-    //     errors.push({
-    //       label: "id_code",
-    //       err_message: "Vui lòng điền số CMND",
-    //     });
-    //   }
-    //   if (bank_account === "") {
-    //     errors.push({
-    //       label: "bank_account",
-    //       err_message: "Vui lòng điền số tài khoản của Bạn",
-    //     });
-    //   }
-    //   if (id_time === "") {
-    //     errors.push({
-    //       label: "id_time",
-    //       err_message: "Vui lòng chọn ngày cấp CMND",
-    //     });
-    //   }
-    //   if (issued_by === "") {
-    //     errors.push({
-    //       label: "issued_by",
-    //       err_message: "Vui lòng chọn nơi cấp CMND",
-    //     });
-    //   }
-    //   if (bank === "") {
-    //     errors.push({
-    //       label: "bank",
-    //       err_message: "Vui lòng chọn ngân hàng bạn đang sử dụng",
-    //     });
-    //   }
-    //   if (bank_name === "") {
-    //     errors.push({
-    //       label: "bank_name",
-    //       err_message: "Vui lòng điền tên tài khoản của Bạn",
-    //     });
-    //   }
-    //   const user_repeat_id_code = await User.findOne({ $and: [{ id_code: id_code }, { id_code: { $ne: "" } }] }).exec();
-    //   const user_repeat_bank_account = await User.findOne({
-    //     $and: [{ bank_account: bank_account }, { bank_account: { $ne: "" } }]
-    //   }).exec();
-    //   const user_repeat_tax_code = await User.findOne({ $and: [{ tax_code: tax_code }, { tax_code: { $ne: "" } }] }).exec();
-
-    //   if (user_repeat_id_code) {
-    //     errors.push({
-    //       label: "id_code",
-    //       err_message: "Số CMND đã được sử dụng",
-    //     });
-    //   }
-    //   if (user_repeat_bank_account) {
-    //     errors.push({
-    //       label: "bank_account",
-    //       err_message: "Số Tài Khoản này đã được sử dụng",
-    //     });
-    //   }
-    //   if (user_repeat_tax_code) {
-    //     errors.push({
-    //       label: "tax_code",
-    //       err_message: "Mã Số Thuế này đã được sử dụng",
-    //     });
-    //   }
-    // }
-
-    // if (errors.length > 0) {
-    //   res.json({
-    //     status: 401,
-    //     errors,
-    //     message: "Có lỗi xảy ra!",
-    //   });
-    // } else {
-    //   const token = jwt.sign(
-    //     {
-    //       full_name,
-    //       email,
-    //       password,
-    //       phone,
-    //       id_code,
-    //       be_member,
-    //       issued_by,
-    //       bank,
-    //       bank_account,
-    //       bank_name,
-    //       iden_type,
-    //       tax_code,
-    //       birthday,
-    //       gender,
-    //       invite_code,
-    //       donate_sales_id,
-    //       groupNumber,
-    //       buy_package,
-    //       id_time,
-    //     },
-    //     process.env.JWT_ACCOUNT_ACTIVATION,
-    //     { expiresIn: "15m" }
-    //   );
-
-    //   const oneYearFromNow = new Date();
-    //   oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-
-    //   const newTransaction = new Transaction({
-    //     status: "pending",
-    //     payment_method: "",
-    //     token,
-    //     created_time: new Date(),
-    //     created_by: full_name,
-    //     email,
-    //     phone,
-    //     expired_time: oneYearFromNow,
-    //     buy_package,
-    //   });
-
 
 
     await newTransaction.save(function (err) {
@@ -617,344 +405,203 @@ exports.registerController = async (req, res) => {
       }
     });
   }
-  //   await newTransaction.save(function (err) {
-  //     if (err) {
-  //       console.log("fail to save transaction!");
-  //       res.json({
-  //         status: 200,
-  //         message: "fail to save transaction!",
-  //         errors: [
-  //           {
-  //             label: "transaction",
-  //             err_message: "Lỗi khi tạo giao dịch.Vui lòng thử lại sau",
-  //           },
-  //         ],
-  //       });
-  //     } else {
-  //       console.log("save transaction done!");
-  //       res.json({
-  //         status: 200,
-  //         message: "",
-  //         data: { email, full_name, phone },
-  //         errors,
-  //       });
-  //     }
-  //   });
-  // }
-};
+}
 
-async function processDataActivation(token) {
-  if (token) {
-    const transaction = Transaction.findOne({ token }).exec();
+async function processDataActivation(data) {
 
-    if (!transaction) {
-      console.log("Activation error 1");
-      res.json({
-        status: 401,
-        message: "Đường dẫn đã hết hạn.Vui lòng đăng ký lại",
-        errors: [],
+  const {
+    full_name,
+    email,
+    password,
+    phone,
+    id_code,
+    be_member,
+    issued_by,
+    bank_account,
+    bank,
+    bank_name,
+    iden_type,
+    tax_code,
+    birthday,
+    gender,
+    invite_code,
+    donate_sales_id,
+    groupNumber,
+    buy_package,
+    id_time,
+  } = data;
+
+  const unSavedErr = [];
+
+  bcrypt.genSalt(saltRounds, function (err, salt) {
+    bcrypt.hash(password, salt, async function (err, hash) {
+
+      // --------------- FIND DONATE USER -------------------
+      const userOfDonateSales = await User.findOne({
+        _id: donate_sales_id,
+      }).exec();
+
+      const userOfInvite = await User.findOne({
+        _id: invite_code,
+      }).exec();
+
+      // --------------- CREATE AVATAR -------------------
+      const listCharacterOfName = full_name.split(" ");
+      const avatarKey = `${listCharacterOfName[listCharacterOfName.length - 2]}+${listCharacterOfName[listCharacterOfName.length - 1]}`;
+
+
+      // --------------- SAVE USER -------------------
+      const user = new User({
+        full_name,
+        email,
+        password: hash,
+        status: "success",
+        avatar: `https://ui-avatars.com/api/?name=${avatarKey}&background=random`,
+        phone,
+        buy_package,
+        groupNumber,
+        parentId: donate_sales_id,
+        created_time: new Date(),
+        id_code,
+        be_member,
+        issued_by,
+        bank,
+        bank_account,
+        bank_name,
+        iden_type,
+        tax_code,
+        birthday,
+        gender,
+        id_time,
+        expired: false
       });
-    } else {
-      jwt.verify(
-        token,
-        process.env.JWT_ACCOUNT_ACTIVATION,
-        async (err, decoded) => {
-          if (err) {
-            console.log("Activation error 2");
-            res.json({
-              status: 401,
-              message: "Đường dẫn đã hết hạn.Vui lòng đăng ký lại",
-              errors: [],
-            });
-          } else {
-            const {
-              full_name,
-              email,
-              password,
-              phone,
-              id_code,
-              be_member,
-              issued_by,
-              bank_account,
-              bank,
-              bank_name,
-              iden_type,
-              tax_code,
-              birthday,
-              gender,
-              invite_code,
-              donate_sales_id,
-              groupNumber,
-              buy_package,
-              id_time,
-            } = jwt.decode(token);
 
-            bcrypt.genSalt(saltRounds, function (err, salt) {
-              bcrypt.hash(password, salt, async function (err, hash) {
+      user.save(function (err) {
+        if (err) {
+          unSavedErr.push({ field: "user" });
+        } else {
+          if (groupNumber === "1") {
+            Tree.findOneAndUpdate(
+              {
+                parent: userOfDonateSales._id,
+              },
+              {
+                $push: { group1: user._id },
+              },
+              async (err) => {
                 if (err) {
-                  console.log(err);
-                  return res.json(err);
-                } else {
-                  const userOfDonateSales = await User.findOne({
-                    _id: donate_sales_id,
-                  }).exec();
-                  const userOfInvite = await User.findOne({
-                    _id: invite_code,
-                  }).exec();
-                  const listCharacterOfName = full_name.split(" ");
-                  const avatarKey = `${listCharacterOfName[listCharacterOfName.length - 2]}+${listCharacterOfName[listCharacterOfName.length - 1]}`
-                  const user = new User({
-                    full_name,
-                    email,
-                    password: hash,
-                    status: "success",
-                    avatar: `https://ui-avatars.com/api/?name=${avatarKey}&background=random`,
-                    phone,
-                    buy_package,
-                    groupNumber,
-                    parentId: donate_sales_id,
-                    created_time: new Date(),
-                    id_code,
-                    be_member,
-                    issued_by,
-                    bank,
-                    bank_account,
-                    bank_name,
-                    iden_type,
-                    tax_code,
-                    birthday,
-                    gender,
-                    id_time,
-                    expired: false
-                  });
-
-                  user.save(function (err) {
-                    if (err) {
-                      console.log(err);
-                      return res.json({
-                        status: 400,
-                        errors: [],
-                        message:
-                          "Lưu thông tin không thành công.Vui lòng thử lại sau!",
-                      });
-                    } else {
-                      const newTree = new Tree({
-                        parent: user._id,
-                        buy_package,
-                      });
-
-                      newTree.save(async function (err) {
-                        if (err) {
-                          return res.json({
-                            status: 400,
-                            errors: [],
-                            message:
-                              "Lưu cây hệ thống không thành công.Vui lòng thử lại sau!",
-                          });
-                        } else {
-                          const parentEmail = userOfInvite.email;
-                          const parentName = userOfInvite.full_name;
-
-                          const oneYearFromNow = new Date();
-                          oneYearFromNow.setFullYear(
-                            oneYearFromNow.getFullYear() + 1
-                          );
-
-                          await User.findOneAndUpdate(
-                            { _id: invite_code },
-                            {
-                              amount:
-                                buy_package === "1"
-                                  ? userOfInvite.amount + 40
-                                  : userOfInvite.amount + 160,
-                            }
-                          ).exec();
-
-                          await updateParent(invite_code, buy_package);
-                          await returnCommission(
-                            invite_code,
-                            buy_package,
-                            full_name
-                          );
-
-                          if (groupNumber === "1") {
-                            Tree.findOneAndUpdate(
-                              {
-                                parent: userOfDonateSales._id,
-                              },
-                              {
-                                $push: { group1: user._id },
-                              },
-                              async (err) => {
-                                if (err) {
-                                  console.log("thêm id vào cha thất bại");
-                                  res.json({
-                                    status: 400,
-                                    errors: [],
-                                    message: "Thêm id vào cha thất bại",
-                                  });
-                                } else {
-                                  const links = await getActiveLink(
-                                    email,
-                                    full_name,
-                                    phone,
-                                    buy_package
-                                  );
-                                  if (links.length === 0) {
-                                    res.json({
-                                      status: 404,
-                                      message: `Lấy link active thất bại! Vui lòng thử lại sau`,
-                                      errors: [],
-                                    });
-                                  } else {
-                                    console.log("links", links);
-                                    returnActiveAppMail(
-                                      full_name,
-                                      email,
-                                      phone,
-                                      links
-                                    );
-                                    thankMail(
-                                      parentName,
-                                      parentEmail,
-                                      full_name
-                                    );
-                                    await Transaction.findOneAndUpdate(
-                                      { token },
-                                      { token: "" }
-                                    );
-                                    res.json({
-                                      status: 200,
-                                      message:
-                                        "🎉 Đăng ký thành công. Kiểm tra Email để được hướng dẫn đăng nhập",
-                                      errors: [],
-                                    });
-                                  }
-                                }
-                              }
-                            );
-                          } else if (groupNumber === "2") {
-                            Tree.findOneAndUpdate(
-                              { parent: userOfDonateSales._id },
-                              {
-                                $push: { group2: user._id },
-                              },
-                              async function (err) {
-                                if (err) {
-                                  console.log("thêm id vào cha thất bại");
-                                  res.json({
-                                    status: 400,
-                                    errors: [],
-                                    message: "Thêm id vào cha thất bại",
-                                  });
-                                } else {
-                                  const links = await getActiveLink(
-                                    email,
-                                    full_name,
-                                    phone,
-                                    buy_package
-                                  );
-                                  if (links.length === 0) {
-                                    res.json({
-                                      status: 404,
-                                      message: `Lấy link active thất bại! Vui lòng thử lại sau`,
-                                      errors: [],
-                                    });
-                                  } else {
-                                    returnActiveAppMail(
-                                      full_name,
-                                      email,
-                                      phone,
-                                      links
-                                    );
-                                    thankMail(
-                                      parentName,
-                                      parentEmail,
-                                      full_name
-                                    );
-                                    res.json({
-                                      status: 200,
-                                      message:
-                                        "🎉 Đăng ký thành công. Kiểm tra Email để được hướng dẫn đăng nhập",
-                                      errors: [],
-                                    });
-                                  }
-                                }
-                              }
-                            );
-                          } else if (groupNumber === "3") {
-                            Tree.findOneAndUpdate(
-                              { parent: userOfDonateSales._id },
-                              {
-                                $push: { group3: user._id },
-                              },
-                              async function (err) {
-                                if (err) {
-                                  console.log("thêm id vào cha thất bại");
-                                  res.json({
-                                    status: 400,
-                                    errors: [],
-                                    message: "Thêm id vào cha thất bại",
-                                  });
-                                } else {
-                                  const links = await getActiveLink(
-                                    email,
-                                    full_name,
-                                    phone,
-                                    buy_package
-                                  );
-                                  if (links.length === 0) {
-                                    res.json({
-                                      status: 404,
-                                      message: `Lấy link active thất bại! Vui lòng thử lại sau`,
-                                      errors: [],
-                                    });
-                                  } else {
-                                    returnActiveAppMail(
-                                      full_name,
-                                      email,
-                                      phone,
-                                      links
-                                    );
-                                    thankMail(
-                                      parentName,
-                                      parentEmail,
-                                      full_name
-                                    );
-                                    res.json({
-                                      status: 200,
-                                      message:
-                                        "🎉 Đăng ký thành công, Kiểm tra Email để được hướng dẫn đăng nhập",
-                                      errors: [],
-                                    });
-                                  }
-                                }
-                              }
-                            );
-                          } else {
-                            console.log("thêm id vào cha thất bại");
-                            return res.json({
-                              status: 400,
-                              errors: [],
-                              message: "sai nhóm",
-                            });
-                          }
-                        }
-                      });
-                    }
-                  });
+                  throw err;
+                }
+              }
+            );
+          } else if (groupNumber === "2") {
+            Tree.findOneAndUpdate(
+              { parent: userOfDonateSales._id },
+              {
+                $push: { group2: user._id },
+              },
+              async function (err) {
+                if (err) {
+                  throw err;
                 }
               });
-            });
+          } else if (groupNumber === "3") {
+            Tree.findOneAndUpdate(
+              { parent: userOfDonateSales._id },
+              {
+                $push: { group3: user._id },
+              },
+              async function (err) {
+                if (err) {
+                  throw err;
+                }
+              }
+            );
+          } else {
+            console.log("thêm id vào cha thất bại");
           }
         }
+      });
+
+
+      // --------------- SAVE TREE -------------------
+      const newTree = new Tree({
+        parent: user._id,
+        buy_package,
+      });
+
+
+      newTree.save(async function (err) {
+        if (err) {
+          unSavedErr.push({ field: "tree" });
+        }
+      });
+
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(
+        oneYearFromNow.getFullYear() + 1
       );
-    }
-  } else {
-    return res.json({
-      message: "Server! Có lỗi xảy ra.Vui lòng thử lại.",
+
+
+      // --------------- UPDATE AMOUNT OF PARENT -------------------
+      await User.findOneAndUpdate(
+        { _id: invite_code },
+        {
+          amount:
+            buy_package === "1"
+              ? userOfInvite.amount + 40
+              : userOfInvite.amount + 160,
+        }
+      ).exec();
+
+      // --------------- UPDATE LEVEL PARENT -------------------
+
+      updateParent(invite_code, buy_package, checkUpLevel);
+
+      // --------------- SAVE COMMISSTIONS -------------------
+      returnCommission(
+        invite_code,
+        buy_package,
+        full_name
+      );
+
+      // --------------- GET APP ACTIVATIONS LINKS -------------------
+      const links = await getActiveLink(
+        email,
+        full_name,
+        phone,
+        buy_package
+      );
+
+      console.log("links", links);
+
+      if (links.length === 0) {
+        console.log(`Lấy link active thất bại! Vui lòng thử lại sau`);
+      }
+
+      // --------------- SEND SUCCESS MAIL -------------------
+      successMail(
+        full_name,
+        email,
+        phone,
+        links
+      );
+
+      // --------------- SEND THANKS MAIL -------------------
+      thankMail(
+        userOfInvite.full_name,
+        userOfInvite.email,
+        full_name
+      );
+
+      // --------------- RESET TOKEN TO EMPTY -------------------
+      // await Transaction.findOneAndUpdate(
+      //   { token },
+      //   { token: "" }
+      // );
+
     });
-  }
+  });
 }
 
 exports.activationController = async (req, res) => {
@@ -965,20 +612,20 @@ exports.activationController = async (req, res) => {
       process.env.JWT_ACCOUNT_ACTIVATION,
       async (err, decoded) => {
         if (err) {
-          console.log("Activation error 2");
-          return res.status(401).json({
+          return res.json({
             status: 401,
             message: "Đường dẫn đã hết hạn.Vui lòng đăng ký lại",
             errors: [],
           });
+        } else {
+          await processDataActivation(jwt.decode(token));
         }
       })
   }
-  processDataActivation(token);
   res.json({
     status: 200,
     message:
-      "🎉 Đăng ký thành công, Kiểm tra Email để được hướng dẫn đăng nhập",
+      "🎉 Chúng tôi đã tiếp nhận yêu cầu của Bạn.Vui lòng kiểm tra Email để xác nhận đăng ký thành công",
     errors: [],
   });
 };
@@ -1040,6 +687,7 @@ exports.loginController = (req, res) => {
               role: user.role,
               phone: user.phone,
               email: user.email,
+              be_member: user.be_member
             },
           },
           message: "Đăng nhập thành công",
@@ -1100,8 +748,6 @@ exports.userInfoController = (req, res) => {
           bank_name,
           iden_type,
           tax_code,
-          // ID_front_side,
-          // ID_back_side,
           complete_profile_level,
         },
         async (err) => {
@@ -1371,237 +1017,6 @@ exports.resetPasswordController = async (req, res) => {
       }
     );
   }
-};
-
-exports.addDemoData = async (req, res) => {
-  //   const {
-  //     full_name,
-  //     email,
-  //     invite_code,
-  //     password,
-  //     buy_package,
-  //     group,
-  //     phone,
-  //     payment_method,
-  //     created_by,
-  //   } = req.query;
-  //   bcrypt.genSalt(saltRounds, function (err, salt) {
-  //     bcrypt.hash(password, salt, async function (err, hash) {
-  //       if (err) {
-  //         console.log(err);
-  //         return res.json(err);
-  //       } else {
-  //         const userOfDonateSales = await User.findOne({
-  //           phone: invite_code,
-  //         }).exec();
-  //         const listAva = [
-  //           "similiquealiasoccaecati",
-  //           "molestiaeimpeditdolor",
-  //           "voluptatesabinventore",
-  //           "quinemoitaque",
-  //           "ametenimomnis",
-  //           "aliquamprovidenthic",
-  //           "recusandaetemporeaut",
-  //           "suntveritatisconsequatur",
-  //           "expeditaaccusamustotam",
-  //           "doloresutqui",
-  //         ];
-  //         const ranNum = Math.floor(Math.random() * 10);
-  //         const url = `${listAva[ranNum]}.png`;
-  //         const user = new User({
-  //           full_name,
-  //           email,
-  //           hashed_password: hash,
-  //           complete_profile_level: 1,
-  //           status: "success",
-  //           avatar: `https://robohash.org/${url}?size=100x100&set=set1`,
-  //           phone,
-  //           buy_package,
-  //           groupNumber: group,
-  //           parentId: userOfDonateSales._id,
-  //           created_time: new Date(),
-  //         });
-  //         const oneYearFromNow = new Date();
-  //         oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-  //         const transaction = new Transaction({
-  //           status: "success",
-  //           approved_by: "admin",
-  //           payment_method,
-  //           token: "",
-  //           created_time: new Date(),
-  //           created_by,
-  //           email,
-  //           phone,
-  //           approved_time: "",
-  //           expired_time: oneYearFromNow,
-  //           buy_package,
-  //         });
-  //         await transaction.save(function (err) {
-  //           if (err) {
-  //             console.log("error when save transaction", err);
-  //           }
-  //         });
-  //         await user.save(function (err) {
-  //           if (err) {
-  //             console.log(err);
-  //             return res.json({
-  //               success: false,
-  //               errors: [
-  //                 {
-  //                   label: "save user error",
-  //                   err_message: "save user error",
-  //                 },
-  //               ],
-  //             });
-  //           } else {
-  //             const newTree = new Tree({
-  //               parent: user._id,
-  //               buy_package,
-  //             });
-  //             newTree.save(async function (err) {
-  //               if (err) {
-  //                 res.json({
-  //                   success: false,
-  //                   errors: [
-  //                     {
-  //                       label: "save tree error",
-  //                       err_message: "Lỗi khi lưu cây",
-  //                     },
-  //                   ],
-  //                 });
-  //               } else {
-  //                 const parentEmail = userOfDonateSales.email;
-  //                 const parentName = userOfDonateSales.full_name;
-  //                 if (group === "1") {
-  //                   Tree.findOneAndUpdate(
-  //                     {
-  //                       parent: userOfDonateSales._id,
-  //                     },
-  //                     {
-  //                       $push: { group1: user._id },
-  //                     },
-  //                     function (err) {
-  //                       if (err) {
-  //                         console.log("ko tim thấy invite code");
-  //                         res.json({
-  //                           success: false,
-  //                           errors: [
-  //                             {
-  //                               label: "save user error",
-  //                               err_message: "save user error",
-  //                             },
-  //                           ],
-  //                         });
-  //                       } else {
-  //                         const links = await getActiveLink(email, full_name, phone)
-  //                         returnActiveAppMail(full_name, email, phone);
-  //                         thankMail(parentName, parentEmail, full_name);
-  //                         res.json({
-  //                           success: true,
-  //                           message:
-  //                             "🎉 Đăng ký thành công, Kiểm tra Email để được hướng dẫn đăng nhập",
-  //                         });
-  //                       }
-  //                     }
-  //                   );
-  //                 } else if (group === "2") {
-  //                   Tree.findOneAndUpdate(
-  //                     { parent: userOfDonateSales._id },
-  //                     {
-  //                       $push: { group2: user._id },
-  //                     },
-  //                     function (err) {
-  //                       if (err) {
-  //                         console.log("ko tim thấy invite code");
-  //                         res.json({
-  //                           success: false,
-  //                           errors: [
-  //                             {
-  //                               label: "save user error",
-  //                               err_message: "save user error",
-  //                             },
-  //                           ],
-  //                         });
-  //                       } else {
-  //                         const links = await getActiveLink(email, full_name, phone)
-  //                         returnActiveAppMail(full_name, email, phone);
-  //                         thankMail(parentName, parentEmail, full_name);
-  //                         res.json({
-  //                           success: true,
-  //                           message:
-  //                             "🎉 Đăng ký thành công, Kiểm tra Email để được hướng dẫn đăng nhập",
-  //                         });
-  //                       }
-  //                     }
-  //                   );
-  //                 } else if (group === "3") {
-  //                   Tree.findOneAndUpdate(
-  //                     { parent: userOfDonateSales._id },
-  //                     {
-  //                       $push: { group3: user._id },
-  //                     },
-  //                     function (err) {
-  //                       if (err) {
-  //                         console.log("ko tim thấy invite code");
-  //                         res.json({
-  //                           success: false,
-  //                           errors: [
-  //                             {
-  //                               label: "save user error",
-  //                               err_message: "save user error",
-  //                             },
-  //                           ],
-  //                         });
-  //                       } else {
-  //                         const links = await getActiveLink(email, full_name, phone)
-  //                         returnActiveAppMail(full_name, email, phone);
-  //                         thankMail(parentName, parentEmail, full_name);
-  //                         res.json({
-  //                           success: true,
-  //                           message:
-  //                             "🎉 Đăng ký thành công, Kiểm tra Email để được hướng dẫn đăng nhập",
-  //                         });
-  //                       }
-  //                     }
-  //                   );
-  //                 } else {
-  //                   return res.json({
-  //                     success: false,
-  //                     errors: [
-  //                       {
-  //                         label: "error group",
-  //                         err_message: "Nhóm không phù hợp.Vui lòng thử lại",
-  //                       },
-  //                     ],
-  //                   });
-  //                 }
-  //               }
-  //             });
-  //           }
-  //         });
-  //         await User.findOneAndUpdate(
-  //           { phone: invite_code },
-  //           {
-  //             amount:
-  //               buy_package === "1"
-  //                 ? userOfDonateSales.amount + 40
-  //                 : userOfDonateSales.amount + 160,
-  //           }
-  //         );
-  //         await updateParent(userOfDonateSales, buy_package);
-  //         const qualified =
-  //           userOfDonateSales.complete_profile_level !== 1 ? true : false;
-  //         await returnCommission(
-  //           userOfDonateSales._id,
-  //           process.env.COMMISSION,
-  //           full_name,
-  //           "Chuyển khoản",
-  //           qualified
-  //         );
-  //         // await saveExtension()
-  //       }
-  //     });
-  //   });
 };
 
 const returnCommission = async (receive_mem, buy_package, join_mem) => {
