@@ -4,7 +4,7 @@ const multer = require('multer');
 // UPLOAD IMAGE
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, './public/uploads/trans');
+        cb(null, './public/uploads/TRASH');
     },
     filename: function (req, file, cb) {
         cb(null, file.originalname)
@@ -22,7 +22,6 @@ var upload = multer({
             file.mimetype == "image/jpeg"
         ) {
             cb(null, true);
-            console.log('avatar saved');
         } else {
             return cb(new Error("only image are allowed!"));
         }

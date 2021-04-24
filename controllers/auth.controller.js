@@ -4,7 +4,7 @@ const Tree = require("../models/tree.model");
 const Commission = require("../models/commission.model");
 const Activation = require("../models/activation.model");
 const axios = require("axios");
-const { thankMail, successMail, updateParent, checkUpLevel } = require("./method");
+const { thankMail, successMail, checkUpLevel, randomString } = require("./method");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const sgMail = require("@sendgrid/mail");
@@ -14,18 +14,6 @@ const fs = require('fs');
 sgMail.setApiKey(process.env.MAIL_KEY);
 
 const saltRounds = 10;
-
-
-const randomstring = (length = 1) => {
-  var result = [];
-  var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  var charactersLength = characters.length;
-  for (var i = 0; i < length; i++) {
-    result.push(characters.charAt(Math.floor(Math.random() *
-      charactersLength)));
-  }
-  return result.join('');
-}
 
 const getActiveLink = async (email, full_name, phone, buy_package) => {
   let accessToken = "";
@@ -161,6 +149,26 @@ const getActiveLink = async (email, full_name, phone, buy_package) => {
   return links;
 };
 
+const updateParent = async (id, buy_package, checkUpLevel) => {
+  const parent = await User.findOne({ _id: id }).exec();
+  console.log("findParentToUpdate", parent);
+  const checkUp = await checkUpLevel(parent, buy_package);
+
+  await User.findOneAndUpdate(
+    { _id: parent._id },
+    {
+      point: buy_package === "1" ? parent.point + 0.25 : parent.point + 1,
+      level: checkUp ? parent.level + 1 : parent.level,
+    }
+  );
+
+  if (parent.parentId === "") {
+    return;
+  } else {
+    await updateParent(parent.parentId, buy_package);
+  }
+};
+
 exports.checkLinkController = async (req, res) => {
   const { invite_code, donate_sales_id, group } = req.body;
 
@@ -200,8 +208,6 @@ exports.checkLinkController = async (req, res) => {
 };
 
 exports.registerController = async (req, res) => {
-  console.log("body", req.body);
-  console.log("file images", req.files);
   const {
     full_name,
     email,
@@ -224,6 +230,9 @@ exports.registerController = async (req, res) => {
     id_time,
   } = req.body;
 
+  var cmndMT = "";
+  var cmndMS = "";
+
   const user_repeat_email = await User.findOne({ email }).exec();
   const valid_phone = await User.findOne({ phone }).exec();
 
@@ -242,98 +251,6 @@ exports.registerController = async (req, res) => {
     });
   }
 
-  if (be_member !== 'false') {
-
-    const files = req.files;
-
-    if (files.CMND_Front && files.CMND_Back) {
-      const listNameIMG = [];
-      fs.rename('./' + files.CMND_Front[0].path, './public/uploads/CMND/' + email + '_front.' + files.CMND_Front[0].filename.split('.').pop(), (err) => {
-        if (err) console.log(err);
-        console.log('Rename Front complete!');
-      });
-      listNameIMG.push(email + '_front.' + files.CMND_Front[0].filename.split('.').pop());
-      fs.rename('./' + files.CMND_Back[0].path, './public/uploads/CMND/' + email + '_back.' + files.CMND_Back[0].filename.split('.').pop(), (err) => {
-        if (err) console.log(err);
-        console.log('Rename Back complete!');
-      });
-      listNameIMG.push(email + '_back.' + files.CMND_Back[0].filename.split('.').pop());
-    } else {
-      errors.push({
-        label: "CMND_Front",
-        err_message: "Vui lòng tải lên mặt trước CMND",
-      },
-        {
-          label: "CMND_Back",
-          err_message: "Vui lòng tải lên mặt sau CMND",
-        });
-    }
-
-    if (id_code === "") {
-      errors.push({
-        label: "id_code",
-        err_message: "Vui lòng điền số CMND",
-      });
-    }
-    if (bank_account === "") {
-      errors.push({
-        label: "bank_account",
-        err_message: "Vui lòng điền số tài khoản của Bạn",
-      });
-    }
-    if (id_time === "") {
-      errors.push({
-        label: "id_time",
-        err_message: "Vui lòng chọn ngày cấp CMND",
-      });
-    }
-    if (issued_by === "") {
-      errors.push({
-        label: "issued_by",
-        err_message: "Vui lòng chọn nơi cấp CMND",
-      });
-    }
-
-    if (bank === "") {
-      errors.push({
-        label: "bank",
-        err_message: "Vui lòng chọn ngân hàng bạn đang sử dụng",
-      });
-    }
-
-    if (bank_name === "") {
-      errors.push({
-        label: "bank_name",
-        err_message: "Vui lòng điền tên tài khoản của Bạn",
-      });
-    }
-
-    const user_repeat_id_code = await User.findOne({ $and: [{ id_code: id_code }, { id_code: { $ne: "" } }] }).exec();
-    const user_repeat_bank_account = await User.findOne({
-      $and: [{ bank_account: bank_account }, { bank_account: { $ne: "" } }]
-    }).exec();
-    const user_repeat_tax_code = await User.findOne({ $and: [{ tax_code: tax_code }, { tax_code: { $ne: "" } }] }).exec();
-
-    if (user_repeat_id_code) {
-      errors.push({
-        label: "id_code",
-        err_message: "Số CMND đã được sử dụng",
-      });
-    }
-    if (user_repeat_bank_account) {
-      errors.push({
-        label: "bank_account",
-        err_message: "Số Tài Khoản này đã được sử dụng",
-      });
-    }
-    if (user_repeat_tax_code) {
-      errors.push({
-        label: "tax_code",
-        err_message: "Mã Số Thuế này đã được sử dụng",
-      });
-    }
-  }
-
   if (errors.length > 0) {
     res.json({
       status: 401,
@@ -341,6 +258,100 @@ exports.registerController = async (req, res) => {
       message: "Có lỗi xảy ra!",
     });
   } else {
+    if (be_member !== 'false') {
+
+      const files = req.files;
+  
+      if (files.CMND_Front && files.CMND_Back) {
+        const randomstring = randomString();
+
+        // name of front image
+        cmndMT = randomstring + '_front.' + files.CMND_Front[0].filename.split('.').pop();
+        fs.rename('./' + files.CMND_Front[0].path, './public/uploads/CMND/' + cmndMT , (err) => {
+          if (err) console.log(err);
+        });
+
+        // name of back image
+        cmndMS = randomstring + '_back.' + files.CMND_Back[0].filename.split('.').pop();
+        fs.rename('./' + files.CMND_Back[0].path, './public/uploads/CMND/' + cmndMS, (err) => {
+          if (err) console.log(err);
+        });
+      } else {
+        errors.push({
+          label: "CMND_Front",
+          err_message: "Vui lòng tải lên mặt trước CMND",
+        },
+          {
+            label: "CMND_Back",
+            err_message: "Vui lòng tải lên mặt sau CMND",
+          });
+      }
+  
+      if (id_code === "") {
+        errors.push({
+          label: "id_code",
+          err_message: "Vui lòng điền số CMND",
+        });
+      }
+      if (bank_account === "") {
+        errors.push({
+          label: "bank_account",
+          err_message: "Vui lòng điền số tài khoản của Bạn",
+        });
+      }
+      if (id_time === "") {
+        errors.push({
+          label: "id_time",
+          err_message: "Vui lòng chọn ngày cấp CMND",
+        });
+      }
+      if (issued_by === "") {
+        errors.push({
+          label: "issued_by",
+          err_message: "Vui lòng chọn nơi cấp CMND",
+        });
+      }
+  
+      if (bank === "") {
+        errors.push({
+          label: "bank",
+          err_message: "Vui lòng chọn ngân hàng bạn đang sử dụng",
+        });
+      }
+  
+      if (bank_name === "") {
+        errors.push({
+          label: "bank_name",
+          err_message: "Vui lòng điền tên tài khoản của Bạn",
+        });
+      }
+  
+      const user_repeat_id_code = await User.findOne({ $and: [{ id_code: id_code }, { id_code: { $ne: "" } }] }).exec();
+      const user_repeat_bank_account = await User.findOne({
+        $and: [{ bank_account: bank_account }, { bank_account: { $ne: "" } }]
+      }).exec();
+      const user_repeat_tax_code = await User.findOne({ $and: [{ tax_code: tax_code }, { tax_code: { $ne: "" } }] }).exec();
+  
+      if (user_repeat_id_code) {
+        errors.push({
+          label: "id_code",
+          err_message: "Số CMND đã được sử dụng",
+        });
+      }
+      if (user_repeat_bank_account) {
+        errors.push({
+          label: "bank_account",
+          err_message: "Số Tài Khoản này đã được sử dụng",
+        });
+      }
+      if (user_repeat_tax_code) {
+        errors.push({
+          label: "tax_code",
+          err_message: "Mã Số Thuế này đã được sử dụng",
+        });
+      }
+    }
+
     const token = jwt.sign(
       {
         full_name,
@@ -358,7 +369,12 @@ exports.registerController = async (req, res) => {
         birthday,
         gender,
         invite_code,
+        donate_sales_id,
+        groupNumber,
         buy_package,
+        id_time,
+        cmndMT,
+        cmndMS
       },
       process.env.JWT_ACCOUNT_ACTIVATION,
       { expiresIn: "15m" }
@@ -429,6 +445,8 @@ async function processDataActivation(data) {
     groupNumber,
     buy_package,
     id_time,
+    cmndMT,
+    cmndMS
   } = data;
 
   const unSavedErr = [];
@@ -472,6 +490,8 @@ async function processDataActivation(data) {
         tax_code,
         birthday,
         gender,
+        cmndMT,
+        cmndMS,
         id_time,
         expired: false
       });

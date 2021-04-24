@@ -8,7 +8,6 @@ const {
     loginController,
     forgotPasswordController,
     resetPasswordController,
-    userInfoController,
     loginRequest,
     checkLinkController,
 } = require('../controllers/auth.controller');
@@ -17,7 +16,6 @@ const {
 router.post('/register', upload.fields([{ name: 'CMND_Front', maxCount: 1 }, { name: 'CMND_Back', maxCount: 1 }]), registerController);
 router.post('/activation', activationController);
 router.post('/login', loginController);
-router.post('/user-info', userInfoController);
 router.post('/checkLink', checkLinkController);
 
 

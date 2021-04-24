@@ -136,49 +136,6 @@ exports.countTotalPersonPackage = async (subTreeIdList, countLevel, level) => {
   }
 };
 
-const countTotalPersonPackage = async (subTreeIdList, countLevel, level) => {
-  var count = 0;
-  for (let id of subTreeIdList) {
-    let branchObject = await Tree.findOne({ parent: id })
-      .select("buy_package")
-      .exec();
-    if (branchObject.buy_package === "1") {
-      count++;
-    }
-  }
-
-  if (countLevel === level) {
-    return count;
-  } else {
-    for (let i = 0; i < subTreeIdList.length; i++) {
-      let branchObject = await Tree.findOne({ parent: subTreeIdList[i]._id })
-        .select("group1 group2 group3 buy_package")
-        .exec();
-
-      console.log("buy!!!!!!", branchObject.buy_package);
-
-      if (branchObject) {
-        let group = [
-          ...branchObject.group1,
-          ...branchObject.group2,
-          ...branchObject.group3,
-        ];
-        if (group.length !== 0 && branchObject.buy_package === "1") {
-          count += await countTotalChildMemberForLevel(
-            group,
-            countLevel++,
-            level
-          );
-        } else {
-          return count;
-        }
-      } else {
-        continue;
-      }
-    }
-  }
-};
-
 exports.getData = async (group, parentIn) => {
   let kq = [];
 
@@ -375,6 +332,26 @@ exports.getResult = async (group, kq) => {
   return kq;
 };
 
+const getResult = async (group, kq) => {
+  for (let id of group) {
+    let parent = await User.findOne({ _id: id });
+    let listGroup = await getListChildId(id);
+    if (listGroup.length > 0) {
+      for (let i of listGroup) {
+        let child = await User.findOne({ _id: i });
+        kq.push({
+          child: cutName(child.full_name),
+          parent: cutName(parent.full_name),
+        });
+      }
+      await getResult(listGroup, kq);
+    } else {
+      continue;
+    }
+  }
+  return kq;
+};
+
 const getFullChildren = async (group, kq) => {
   for (let id of group) {
     let parent = await User.findOne({ _id: id }).select("full_name").exec();
@@ -404,6 +381,16 @@ exports.getFullChildren = async (group, kq) => {
 };
 
 exports.getListChildId = async (id) => {
+  const objBranch = await Tree.findOne({ parent: id })
+    .select("group1 group2 group3")
+    .exec();
+
+  const { group1, group2, group3 } = objBranch;
+
+  return [...group1, ...group2, ...group3];
+};
+
+const getListChildId = async (id) => {
   const objBranch = await Tree.findOne({ parent: id })
     .select("group1 group2 group3")
     .exec();
@@ -500,24 +487,39 @@ exports.getSubUserListAndChildNumber = async (current_user_id) => {
   return { subTreeIdList, subUserListAndChild };
 };
 
-exports.updateParent = async (id, buy_package, checkUpLevel) => {
-  const parent = await User.findOne({ _id: id }).exec();
-  console.log("findParentToUpdate", parent);
-  const checkUp = await checkUpLevel(parent, buy_package);
+const getSubUserListAndChildNumber = async (current_user_id) => {
+  let branchObject = await Tree.findOne({ parent: current_user_id })
+    .select("group1 group2 group3")
+    .exec();
+  let group = [
+    ...branchObject.group1,
+    ...branchObject.group2,
+    ...branchObject.group3,
+  ];
 
-  await User.findOneAndUpdate(
-    { _id: parent._id },
-    {
-      point: buy_package === "1" ? parent.point + 0.25 : parent.point + 1,
-      level: checkUp ? parent.level + 1 : parent.level,
+  var subTreeIdList = [];
+  var subUserListAndChild = [];
+
+  for (let id of group) {
+    const user = await User.findOne({ _id: id }).exec();
+    var childNumber = 0;
+    const childGroupObj = await Tree.findOne({ parent: id }).exec();
+    if (childGroupObj) {
+      const childGroupArr = [
+        ...childGroupObj.group1,
+        ...childGroupObj.group2,
+        ...childGroupObj.group3,
+      ];
+      childNumber = await countTotalChildMember(childGroupArr);
     }
-  );
-
-  if (parent.parentId === "") {
-    return;
-  } else {
-    await updateParent(parent.parentId, buy_package);
+    if (!user) {
+      console.log("loop user err");
+    } else {
+      subTreeIdList.push(user._id);
+      subUserListAndChild.push({ user, childNumber });
+    }
   }
+  return { subTreeIdList, subUserListAndChild };
 };
 
 exports.thankMail = (parentName, parentEmail, full_name) => {
@@ -813,7 +815,7 @@ exports.successMail = (full_name, email, phone, links) => {
                                                                 <div>
                                                               
                                                                 <ul style="color: #34495e">
-                                                                ${links.map((index, link) => {
+                                                                ${links.map((link ,index ) => {
       return `<li style="margin-bottom: 10px;">Link ${index + 1} : <a href=https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}>AIPS APP ${index + 1}</a></li>`;
     })
       }
@@ -948,14 +950,6 @@ exports.successMail = (full_name, email, phone, links) => {
   });
 }
 
-const getListChildId = async (id) => {
-  const objBranch = await Tree.findOne({ parent: id }).select('group1 group2 group3').exec();
-
-  const { group1, group2, group3 } = objBranch;
-
-  return [...group1, ...group2, ...group3];
-}
-
 exports.checkUpLevel = async (user, buy_package) => {
   if (buy_package === 1) {
     return;
@@ -1033,3 +1027,14 @@ exports.checkUpLevel = async (user, buy_package) => {
     }
   }
 };
+
+exports.randomString = (length = 6) => {
+  var result = [];
+  var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  var charactersLength = characters.length;
+  for (var i = 0; i < length; i++) {
+    result.push(characters.charAt(Math.floor(Math.random() *
+      charactersLength)));
+  }
+  return result.join('');
+}

@@ -160,6 +160,9 @@ exports.upgrade = async (req, res) => {
 
   var errors = [];
 
+  var cmndMT = "";
+  var cmndMS = "";
+
   const user_repeat_id_code = await User.findOne({ $and: [{ id_code: id_code }, { id_code: { $ne: "" } }] }).exec();
   const user_repeat_bank_account = await User.findOne({
     $and: [{ bank_account: bank_account }, { bank_account: { $ne: "" } }]
@@ -185,6 +188,33 @@ exports.upgrade = async (req, res) => {
     });
   }
 
+  const files = req.files;
+
+  if (files.CMND_Front && files.CMND_Back) {
+    const randomstring = randomString();
+
+    // name of front image
+    cmndMT = randomstring + '_front.' + files.CMND_Front[0].filename.split('.').pop();
+    fs.rename('./' + files.CMND_Front[0].path, './public/uploads/CMND/' + cmndMT, (err) => {
+      if (err) console.log(err);
+    });
+
+    // name of back image
+    cmndMS = randomstring + '_back.' + files.CMND_Back[0].filename.split('.').pop();
+    fs.rename('./' + files.CMND_Back[0].path, './public/uploads/CMND/' + cmndMS, (err) => {
+      if (err) console.log(err);
+    });
+  } else {
+    errors.push({
+      label: "CMND_Front",
+      err_message: "Vui lòng tải lên mặt trước CMND",
+    },
+      {
+        label: "CMND_Back",
+        err_message: "Vui lòng tải lên mặt sau CMND",
+      });
+  }
+
   if (errors.length > 0) {
     res.json({
       status: 401,
@@ -201,7 +231,9 @@ exports.upgrade = async (req, res) => {
       bank_name,
       tax_code,
       buy_package: "2",
-      be_member: "true"
+      be_member: "true",
+      cmndMT,
+      cmndMS
     }).exec();
 
     res.json({
@@ -216,7 +248,7 @@ exports.profile = async (req, res) => {
   const { id } = req.params;
   const user = await User.findOne({ _id: id })
     .select(
-      "full_name phone birthday be_member gender id_code id_type id_time issued_by tax_code iden_type"
+      "full_name phone birthday be_member gender id_code id_type id_time issued_by tax_code iden_type cmndMT cmndMS"
     )
     .exec();
 
@@ -464,7 +496,7 @@ exports.editProfile = async (req, res) => {
 
 exports.inviteUrl = async (req, res) => {
   const { id } = req.body;
-  
+
   const objBranchChild = await Tree.findOne({ parent: id })
     .select("group1 group2 group3")
     .exec();

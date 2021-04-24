@@ -285,10 +285,3 @@ exports.folderView = async (req, res) => {
   });
   res.json({ listChildName, group: root });
 }
-
-exports.test = async (req, res) => {
-  return res.json({
-    img: req.Url
-  });
-
-}

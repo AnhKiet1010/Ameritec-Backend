@@ -63,19 +63,6 @@ exports.activeTrans = async (req, res) => {
                                           style="padding:32px 0px 0px 0px;color:#000000;text-align:left"
                                           bgcolor="#F7F6F1" width="100%" align="left">
 
-                                          <table class="m_-3508132029520417464preheader" role="module" border="0"
-                                            cellpadding="0" cellspacing="0" width="100%"
-                                            style="display:none!important;opacity:0;color:transparent;height:0;width:0">
-                                            <tbody>
-                                              <tr>
-                                                <td role="module-content">
-                                                  <p>Đã lâu rồi không thấy bạn tham gia các khóa học trên CodersX.
-                                                  </p>
-                                                </td>
-                                              </tr>
-                                            </tbody>
-                                          </table>
-
                                           <table class="m_-3508132029520417464wrapper" role="module" border="0"
                                             cellpadding="0" cellspacing="0" width="100%" style="table-layout:fixed">
                                             <tbody>
