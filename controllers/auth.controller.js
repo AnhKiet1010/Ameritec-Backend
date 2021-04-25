@@ -4,7 +4,7 @@ const Tree = require("../models/tree.model");
 const Commission = require("../models/commission.model");
 const Activation = require("../models/activation.model");
 const axios = require("axios");
-const { thankMail, successMail, checkUpLevel, randomString } = require("./method");
+const { thankMail, successMail, randomString } = require("./method");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const sgMail = require("@sendgrid/mail");
@@ -149,10 +149,10 @@ const getActiveLink = async (email, full_name, phone, buy_package) => {
   return links;
 };
 
-const updateParent = async (id, buy_package, checkUpLevel) => {
+const updateParent = async (id, buy_package) => {
   const parent = await User.findOne({ _id: id }).exec();
   console.log("findParentToUpdate", parent);
-  const checkUp = await checkUpLevel(parent, buy_package);
+  const checkUp = await checkUpLevel(id, buy_package);
 
   await User.findOneAndUpdate(
     { _id: parent._id },
@@ -162,10 +162,89 @@ const updateParent = async (id, buy_package, checkUpLevel) => {
     }
   );
 
-  if (parent.parentId === "") {
+  if (parent.parentId === "AMERITEC" || parent.parentId === "AMERITEC2021") {
     return;
   } else {
     await updateParent(parent.parentId, buy_package);
+  }
+};
+
+const checkUpLevel = async (id, buy_package) => {
+  const user = await User.findOne({ _id: id }).exec();
+  if (buy_package === 1) {
+    return;
+  } else {
+    var targetNumber;
+    var countLevel;
+    switch (user.level) {
+      case 0:
+        targetNumber = process.env.STEP1_NUMBER;
+        countLevel = 0;
+        break;
+      case 1:
+        targetNumber = process.env.STEP2_NUMBER;
+        countLevel = 1;
+        break;
+      case 2:
+        targetNumber = process.env.STEP3_NUMBER;
+        countLevel = 2;
+        break;
+      case 3:
+        targetNumber = process.env.STEP4_NUMBER;
+        countLevel = 3;
+        break;
+      case 4:
+        targetNumber = process.env.STEP5_NUMBER;
+        countLevel = 4;
+        break;
+      case 5:
+        targetNumber = process.env.STEP6_NUMBER;
+        countLevel = 5;
+        break;
+      default:
+        targetNumber = 0;
+        countLevel = 0;
+    }
+
+    const treeOfUser = await Tree.findOne({ parent: user._id })
+      .select("group1 group2 group3")
+      .exec();
+    const listChildAllGroupOfUser = [
+      ...treeOfUser.group1,
+      ...treeOfUser.group2,
+      ...treeOfUser.group3,
+    ];
+    const totalChildMember =
+      (await countTotalChildMemberForLevel(listChildAllGroupOfUser)) + 1;
+    const totalChildMemberGroup1 = await countTotalChildMemberForLevel(
+      [...treeOfUser.group1],
+      0,
+      countLevel
+    );
+    const totalChildMemberGroup2 = await countTotalChildMemberForLevel(
+      [...treeOfUser.group2],
+      0,
+      countLevel
+    );
+    const totalChildMemberGroup3 = await countTotalChildMemberForLevel(
+      [...treeOfUser.group3],
+      0,
+      countLevel
+    );
+    console.log("nhóm 1", totalChildMemberGroup1);
+    console.log("nhóm 2", totalChildMemberGroup2);
+    console.log("nhóm 3", totalChildMemberGroup3);
+    console.log("tất cả", totalChildMember);
+    console.log("target", targetNumber);
+    if (totalChildMember < targetNumber) {
+      return false;
+    } else if (
+      totalChildMemberGroup1 >= Math.floor(parseInt(targetNumber) / 4) &&
+      totalChildMemberGroup2 >= Math.floor(parseInt(targetNumber) / 4) &&
+      totalChildMemberGroup3 >= Math.floor(parseInt(targetNumber) / 4)
+    ) {
+      return true;
+    }
   }
 };
 
@@ -423,7 +502,7 @@ exports.registerController = async (req, res) => {
   }
 }
 
-async function processDataActivation(data) {
+async function processDataActivation(data, token) {
 
   const {
     full_name,
@@ -576,7 +655,7 @@ async function processDataActivation(data) {
 
       // --------------- UPDATE LEVEL PARENT -------------------
 
-      updateParent(invite_code, buy_package, checkUpLevel);
+      updateParent(invite_code, buy_package);
 
       // --------------- SAVE COMMISSTIONS -------------------
       returnCommission(
@@ -597,6 +676,7 @@ async function processDataActivation(data) {
 
       if (links.length === 0) {
         console.log(`Lấy link active thất bại! Vui lòng thử lại sau`);
+        unSavedErr.push({field: "links"});
       }
 
       // --------------- SEND SUCCESS MAIL -------------------
@@ -615,10 +695,13 @@ async function processDataActivation(data) {
       );
 
       // --------------- RESET TOKEN TO EMPTY -------------------
-      // await Transaction.findOneAndUpdate(
-      //   { token },
-      //   { token: "" }
-      // );
+      await Transaction.findOneAndUpdate(
+        { token },
+        { token: "" }
+      );
+
+      // --------------- CONSOLE.LOG ERROR FIELD -------------------
+      console.log("error field", unSavedErr);
 
     });
   });
@@ -626,7 +709,10 @@ async function processDataActivation(data) {
 
 exports.activationController = async (req, res) => {
   const { token } = req.body;
-  if (token) {
+
+  const penddingTrans = await Transaction.findOne({token}).exec();
+
+  if (penddingTrans) {
     jwt.verify(
       token,
       process.env.JWT_ACCOUNT_ACTIVATION,
@@ -638,16 +724,23 @@ exports.activationController = async (req, res) => {
             errors: [],
           });
         } else {
-          await processDataActivation(jwt.decode(token));
+          await processDataActivation(jwt.decode(token), token);
         }
-      })
+      });
+      res.json({
+        status: 200,
+        message:
+          "🎉 Chúng tôi đã tiếp nhận yêu cầu của Bạn.Vui lòng kiểm tra Email để xác nhận đăng ký thành công",
+        errors: [],
+      });
+  } else {
+    res.json({
+      status: 401,
+      message:
+        "Tài khoản của Bạn đã được kích hoạt.Vui lòng đăng nhập",
+      errors: [],
+    });    
   }
-  res.json({
-    status: 200,
-    message:
-      "🎉 Chúng tôi đã tiếp nhận yêu cầu của Bạn.Vui lòng kiểm tra Email để xác nhận đăng ký thành công",
-    errors: [],
-  });
 };
 
 exports.loginController = (req, res) => {

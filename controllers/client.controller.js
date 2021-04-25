@@ -9,7 +9,9 @@ const {
   getFullChildren,
   getData,
   countTotalChildMember,
+  randomString
 } = require("./method");
+const fs = require('fs');
 
 exports.dashboard = async (req, res) => {
   const { id } = req.params;
@@ -248,7 +250,7 @@ exports.profile = async (req, res) => {
   const { id } = req.params;
   const user = await User.findOne({ _id: id })
     .select(
-      "full_name phone birthday be_member gender id_code id_type id_time issued_by tax_code iden_type cmndMT cmndMS"
+      "full_name phone birthday be_member gender id_code id_time issued_by tax_code cmndMT cmndMS"
     )
     .exec();
 

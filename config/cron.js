@@ -1,7 +1,7 @@
 const Transaction = require("../models/transaction.model");
 const User = require("../models/user.model");
 const moment = require("moment");
-const fs = require('fs');
+const fs = require('fs').promises;
 
 exports.deletePendingTransactions = async () => {
     var listTrans = await Transaction.find({ status: "pending" }).exec();
@@ -15,21 +15,15 @@ exports.deletePendingTransactions = async () => {
             kq.push(listTrans[i]._id);
         }
     }
-
-    kq.forEach(element => {
-        const trans = Transaction.findById(element).exec();
-        fs.unlink('.public/upload/trans/' + trans.email + "_back", function (err) {
-            if (err) console.log(err);
-            // if no error, file has been deleted successfully
-            console.log('File back deleted!');
-        });
-        fs.unlink('.public/upload/trans/' + trans.email + "_front", function (err) {
-            if (err) console.log(err);
-            // if no error, file has been deleted successfully
-            console.log('File front deleted!');
-        });
-    });
     await Transaction.deleteMany({ _id: kq }).exec();
+
+
+    fs.rmdir('.public/upload/TRASH', function (err) {
+        if (err) console.log(err);
+        // if no error, file has been deleted successfully
+        console.log('Delete trash CMND!');
+    });
+
     console.log("finish deletePendingTransactions ");
     //await Transaction.deleteMany({ status: "pending" }).exec();
 }
