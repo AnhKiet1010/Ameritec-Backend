@@ -4,6 +4,10 @@ const Tree = require("../models/tree.model");
 const Transaction = require("../models/transaction.model");
 const { PROVINCES } = require("../constants/province");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
+
+const saltRounds = 10;
+
 
 exports.helperInsert = async (req, res,) => {
   var listSugarDaddies = req.body.listSugarDaddy;
@@ -588,7 +592,7 @@ exports.createAdmin = async (req, res) => {
             amount: 0,
             avatar: `https://ui-avatars.com/api/?name=${avatarKey}&background=random`,
             role: "admin",
-            parentId: "",
+            parentId: "AMERITEC",
             be_member: true
           });
 

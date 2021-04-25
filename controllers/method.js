@@ -815,10 +815,9 @@ exports.successMail = (full_name, email, phone, links) => {
                                                                 <div>
                                                               
                                                                 <ul style="color: #34495e">
-                                                                ${links.map((link ,index ) => {
+                                                                ${links.map((link , index ) => {
       return `<li style="margin-bottom: 10px;">Link ${index + 1} : <a href=https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}>AIPS APP ${index + 1}</a></li>`;
-    })
-      }
+    })}
                                                               </ul>
                                                             </br>
                                                               Mọi chi tiết vui lòng liên hệ :
@@ -949,84 +948,6 @@ exports.successMail = (full_name, email, phone, links) => {
     }
   });
 }
-
-exports.checkUpLevel = async (user, buy_package) => {
-  if (buy_package === 1) {
-    return;
-  } else {
-    var targetNumber;
-    var countLevel;
-    switch (user.level) {
-      case 0:
-        targetNumber = process.env.STEP1_NUMBER;
-        countLevel = 0;
-        break;
-      case 1:
-        targetNumber = process.env.STEP2_NUMBER;
-        countLevel = 1;
-        break;
-      case 2:
-        targetNumber = process.env.STEP3_NUMBER;
-        countLevel = 2;
-        break;
-      case 3:
-        targetNumber = process.env.STEP4_NUMBER;
-        countLevel = 3;
-        break;
-      case 4:
-        targetNumber = process.env.STEP5_NUMBER;
-        countLevel = 4;
-        break;
-      case 5:
-        targetNumber = process.env.STEP6_NUMBER;
-        countLevel = 5;
-        break;
-      default:
-        targetNumber = 0;
-        countLevel = 0;
-    }
-
-    const treeOfUser = await Tree.findOne({ parent: user._id })
-      .select("group1 group2 group3")
-      .exec();
-    const listChildAllGroupOfUser = [
-      ...treeOfUser.group1,
-      ...treeOfUser.group2,
-      ...treeOfUser.group3,
-    ];
-    const totalChildMember =
-      (await countTotalChildMemberForLevel(listChildAllGroupOfUser)) + 1;
-    const totalChildMemberGroup1 = await countTotalChildMemberForLevel(
-      [...treeOfUser.group1],
-      0,
-      countLevel
-    );
-    const totalChildMemberGroup2 = await countTotalChildMemberForLevel(
-      [...treeOfUser.group2],
-      0,
-      countLevel
-    );
-    const totalChildMemberGroup3 = await countTotalChildMemberForLevel(
-      [...treeOfUser.group3],
-      0,
-      countLevel
-    );
-    console.log("nhóm 1", totalChildMemberGroup1);
-    console.log("nhóm 2", totalChildMemberGroup2);
-    console.log("nhóm 3", totalChildMemberGroup3);
-    console.log("tất cả", totalChildMember);
-    console.log("target", targetNumber);
-    if (totalChildMember < targetNumber) {
-      return false;
-    } else if (
-      totalChildMemberGroup1 >= Math.floor(parseInt(targetNumber) / 4) &&
-      totalChildMemberGroup2 >= Math.floor(parseInt(targetNumber) / 4) &&
-      totalChildMemberGroup3 >= Math.floor(parseInt(targetNumber) / 4)
-    ) {
-      return true;
-    }
-  }
-};
 
 exports.randomString = (length = 6) => {
   var result = [];
