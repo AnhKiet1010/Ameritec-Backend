@@ -7,11 +7,8 @@ const axios = require("axios");
 const { thankMail, successMail, randomString } = require("./method");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const sgMail = require("@sendgrid/mail");
 const e = require("express");
 const fs = require('fs');
-
-sgMail.setApiKey(process.env.MAIL_KEY);
 
 const saltRounds = 10;
 
@@ -151,7 +148,6 @@ const getActiveLink = async (email, full_name, phone, buy_package) => {
 
 const updateParent = async (id, buy_package) => {
   const parent = await User.findOne({ _id: id }).exec();
-  console.log("findParentToUpdate", parent);
   const checkUp = await checkUpLevel(id, buy_package);
 
   await User.findOneAndUpdate(
@@ -231,11 +227,7 @@ const checkUpLevel = async (id, buy_package) => {
       0,
       countLevel
     );
-    console.log("nhóm 1", totalChildMemberGroup1);
-    console.log("nhóm 2", totalChildMemberGroup2);
-    console.log("nhóm 3", totalChildMemberGroup3);
-    console.log("tất cả", totalChildMember);
-    console.log("target", targetNumber);
+    
     if (totalChildMember < targetNumber) {
       return false;
     } else if (
@@ -671,8 +663,6 @@ async function processDataActivation(data, token) {
         phone,
         buy_package
       );
-
-      console.log("links", links);
 
       if (links.length === 0) {
         console.log(`Lấy link active thất bại! Vui lòng thử lại sau`);

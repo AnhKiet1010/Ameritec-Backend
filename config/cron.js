@@ -1,7 +1,7 @@
 const Transaction = require("../models/transaction.model");
 const User = require("../models/user.model");
 const moment = require("moment");
-const fs = require('fs').promises;
+const fs = require('fs');
 
 exports.deletePendingTransactions = async () => {
     var listTrans = await Transaction.find({ status: "pending" }).exec();

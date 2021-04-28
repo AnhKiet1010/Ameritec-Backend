@@ -326,7 +326,6 @@ exports.getStorage = async (req, res) => {
 
   const date = new Date();
   var listLink = await Activations.find().sort({ _id: -1 }).exec();
-  console.log(listLink);
   listLink.forEach(element => {
     element.created = new Date(element.created);
   });
