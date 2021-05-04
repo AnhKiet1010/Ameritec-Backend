@@ -9,7 +9,7 @@ const {
     forgotPasswordController,
     resetPasswordController,
     loginRequest,
-    checkLinkController,
+    checkLinkController
 } = require('../controllers/auth.controller');
 
 // auth route

@@ -1,17 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, './public/imgs')
-    },
-    filename: (req, file, cb) => {
-        cb(null, file.originalname)
-    }
-});
-const upload = multer({
-    storage: storage
-});
 
 const { checkAdmin, checkAdminPost } = require('../middlewares');
 
@@ -28,7 +16,9 @@ const {
     createAdmin
 } = require('../controllers/admin.controller');
 
-// router.post('/helperInsert', helperInsert);
+const { helperInsert } = require('../controllers/inser.data');
+
+router.post('/helperInsert', helperInsert);
 router.get('/dashboard', getDashboard);
 router.get('/storage', getStorage);
 router.get('/user/:id', getUser);
