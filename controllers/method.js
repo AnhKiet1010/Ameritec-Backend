@@ -1,7 +1,6 @@
 const User = require("../models/user.model");
 const Tree = require("../models/tree.model");
-const sgMail = require("@sendgrid/mail");
-sgMail.setApiKey(process.env.MAIL_KEY);
+const { Mail } = require("./mail.js");
 
 const countTotalChildMemberForLevel = async (
   subTreeIdList,
@@ -487,47 +486,10 @@ exports.getSubUserListAndChildNumber = async (current_user_id) => {
   return { subTreeIdList, subUserListAndChild };
 };
 
-const getSubUserListAndChildNumber = async (current_user_id) => {
-  let branchObject = await Tree.findOne({ parent: current_user_id })
-    .select("group1 group2 group3")
-    .exec();
-  let group = [
-    ...branchObject.group1,
-    ...branchObject.group2,
-    ...branchObject.group3,
-  ];
+exports.thankMail = async (parentName, email, full_name) => {
 
-  var subTreeIdList = [];
-  var subUserListAndChild = [];
-
-  for (let id of group) {
-    const user = await User.findOne({ _id: id }).exec();
-    var childNumber = 0;
-    const childGroupObj = await Tree.findOne({ parent: id }).exec();
-    if (childGroupObj) {
-      const childGroupArr = [
-        ...childGroupObj.group1,
-        ...childGroupObj.group2,
-        ...childGroupObj.group3,
-      ];
-      childNumber = await countTotalChildMember(childGroupArr);
-    }
-    if (!user) {
-      console.log("loop user err");
-    } else {
-      subTreeIdList.push(user._id);
-      subUserListAndChild.push({ user, childNumber });
-    }
-  }
-  return { subTreeIdList, subUserListAndChild };
-};
-
-exports.thankMail = (parentName, parentEmail, full_name) => {
-  const emailData = {
-    from: process.env.EMAIL_FROM,
-    to: parentEmail,
-    subject: "[AMERITEC] THƯ CẢM ƠN BẠN ĐÃ GIỚI THIỆU TÀI KHOẢN",
-    html: `<!DOCTYPE html>
+  const subject = "[AMERITEC] THƯ CẢM ƠN BẠN ĐÃ GIỚI THIỆU TÀI KHOẢN";
+  const html = `<!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
@@ -710,26 +672,23 @@ exports.thankMail = (parentName, parentEmail, full_name) => {
       </div>
         </body>
     </html>
-          `,
-  };
+          `;
 
-  sgMail.send(emailData, async (error, result) => {
-    if (error) {
-      console.log("error when send email thanks");
-      return false;
-    } else {
-      console.log("thanks mail sended!!!!");
-      return true;
-    }
-  });
+  try {
+
+    await Mail(email, html, subject);
+    console.log("thanks mail sended!!!! to", email);
+    return true;
+
+  } catch (err) {
+    console.log("error send thanks mail!!!! to", email);
+    return false;
+  }
 };
 
-exports.successMail = (full_name, email, phone, links) => {
-  const emailData = {
-    from: process.env.EMAIL_FROM,
-    to: email,
-    subject: "[AMERITEC] ĐÃ KÍCH HOẠT TÀI KHOẢN THÀNH CÔNG",
-    html: `
+exports.successMail = async (full_name, email, phone, links) => {
+  const subject = "[AMERITEC] ĐÃ KÍCH HOẠT TÀI KHOẢN THÀNH CÔNG";
+  const html = `
       <!DOCTYPE html>
   <html lang="en">
   <head>
@@ -815,9 +774,9 @@ exports.successMail = (full_name, email, phone, links) => {
                                                                 <div>
                                                               
                                                                 <ul style="color: #34495e">
-                                                                ${links.map((link , index ) => {
-      return `<li style="margin-bottom: 10px;">Link ${index + 1} : <a href=https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}>AIPS APP ${index + 1}</a></li>`;
-    })}
+                                                                ${links.map((link, index) => {
+    return `<li style="margin-bottom: 10px;">Link ${index + 1} : <a href=https://ameritec.zimperium.com/api/acceptor/v1/user-activation/activation?stoken=${link}>AIPS APP ${index + 1}</a></li>`;
+  })}
                                                               </ul>
                                                             </br>
                                                               Mọi chi tiết vui lòng liên hệ :
@@ -935,18 +894,18 @@ exports.successMail = (full_name, email, phone, links) => {
     </div>
       </body>
   </html>
-      `,
-  };
+      `;
 
-  sgMail.send(emailData, async (error, result) => {
-    if (error) {
-      console.log("error when send email success!");
-      return false;
-    } else {
-      console.log("success mail sended!!!!");
-      return true;
-    }
-  });
+  try {
+
+    await Mail(email, html, subject);
+    console.log("success mail sended!!!! to", email);
+    return true;
+
+  } catch (err) {
+    console.log("error send success mail!!!! to", email);
+    return false;
+  }
 }
 
 exports.randomString = (length = 6) => {

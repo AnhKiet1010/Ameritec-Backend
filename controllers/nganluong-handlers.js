@@ -3,9 +3,9 @@ const { NganLuong } = require('vn-payments');
 /* eslint-disable no-param-reassign */
 const nganluong = new NganLuong({
 	paymentGateway: "https://sandbox.nganluong.vn:8088/nl35/checkout.api.nganluong.post.php",
-	merchant: "50016",
-	receiverEmail: "letrananhkiet1010@gmail.com",
-	secureSecret: "2e495b9649273cc50169d22f9682e2dd",
+	merchant: "50240",
+	receiverEmail: "ameritec110919@gmail.com",
+	secureSecret: "90d142d2d308437155eb5cd2f5b6f2df",
 });
 
 exports.checkoutNganLuong = (req, res) => {

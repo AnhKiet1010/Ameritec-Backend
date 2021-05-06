@@ -7,11 +7,9 @@ const axios = require("axios");
 const { thankMail, successMail, randomString } = require("./method");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const sgMail = require("@sendgrid/mail");
 const e = require("express");
 const fs = require('fs');
-
-sgMail.setApiKey(process.env.MAIL_KEY);
+const { Mail } = require("./mail");
 
 const saltRounds = 10;
 
@@ -151,7 +149,6 @@ const getActiveLink = async (email, full_name, phone, buy_package) => {
 
 const updateParent = async (id, buy_package) => {
   const parent = await User.findOne({ _id: id }).exec();
-  console.log("findParentToUpdate", parent);
   const checkUp = await checkUpLevel(id, buy_package);
 
   await User.findOneAndUpdate(
@@ -231,11 +228,7 @@ const checkUpLevel = async (id, buy_package) => {
       0,
       countLevel
     );
-    console.log("nhóm 1", totalChildMemberGroup1);
-    console.log("nhóm 2", totalChildMemberGroup2);
-    console.log("nhóm 3", totalChildMemberGroup3);
-    console.log("tất cả", totalChildMember);
-    console.log("target", targetNumber);
+
     if (totalChildMember < targetNumber) {
       return false;
     } else if (
@@ -672,8 +665,6 @@ async function processDataActivation(data, token) {
         buy_package
       );
 
-      console.log("links", links);
-
       if (links.length === 0) {
         console.log(`Lấy link active thất bại! Vui lòng thử lại sau`);
         unSavedErr.push({ field: "links" });
@@ -1030,49 +1021,32 @@ exports.forgotPasswordController = async (req, res) => {
         expiresIn: "10m",
       }
     );
-
-    const emailData = {
-      from: process.env.EMAIL_FROM,
-      to: email,
-      subject: `ĐƯỜNG DẪN CẤP LẠI MẬT KHẨU`,
-      html: `
+    const subject = `[AMERITEC] ĐƯỜNG DẪN CẤP LẠI MẬT KHẨU`;
+    const html = `
                     <h1>Bấm vào link này để đổi mật khẩu</h1>
                     <p>${process.env.CLIENT_URL}/users/password/reset/${token}</p>
                     <hr />
                     <p>Mọi chi tiết vui lòng liên hệ : </p>
                     <p>${process.env.CLIENT_URL}</p>
-                `,
-    };
+                `;
 
-    return user.updateOne(
-      {
-        resetPasswordLink: token,
-      },
-      (err, success) => {
-        if (err) {
-          console.log("RESET PASSWORD LINK ERROR", err);
-          return res.json({
-            status: 404,
-            message: "📍 Lỗi kết nối cơ sở dữ liệu trên yêu cầu quên mật khẩu người dùng",
-          });
-        } else {
-          sgMail
-            .send(emailData)
-            .then((sent) => {
-              return res.json({
-                status: 200,
-                message: `🎉 Mail đã được gửi đến ${email}`,
-              });
-            })
-            .catch((err) => {
-              return res.json({
-                status: 404,
-                message: "📍 Gửi mail thất bại.Vui lòng thử lại sau!"
-              });
-            });
-        }
-      }
-    );
+    try {
+
+      await Mail(email, html, subject);
+      console.log("forgot pass sended!!!! to", email);
+
+      await user.updateOne({
+          resetPasswordLink: token,
+        }).exec();
+
+      return res.json({
+        status: 200,
+        message: `🎉 Mail đã được gửi đến ${email}`,
+      });
+
+    } catch (err) {
+      console.log("error forgot pass mail!!!! to", email);
+    }
   }
 };
 

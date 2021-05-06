@@ -16,12 +16,10 @@ const connectDB = require("./config/db");
 
 
 // parse application/x-www-form-urlencoded
-app.use(express.json());
+// app.use(express.json());
 
 // parse application/json
-app.use(express.urlencoded({
-  extended: true
-}));
+app.use(express.json({limit: '50mb', extended: true}));
 
 // Dev Login Middleware
 app.use(cors());
@@ -29,36 +27,6 @@ app.use(morgan("dev"));
 
 app.get("/", (req, res) => {
   res.send("success");
-});
-app.get('/send', function (req, res) {
-  var ses_mail = "From: 'AWS Tutorial Series' <" + email + ">\n";
-  ses_mail = ses_mail + "To: " + email + "\n";
-  ses_mail = ses_mail + "Subject: AWS SES Attachment Example\n";
-  ses_mail = ses_mail + "MIME-Version: 1.0\n";
-  ses_mail = ses_mail + "Content-Type: multipart/mixed; boundary=\"NextPart\"\n\n";
-  ses_mail = ses_mail + "--NextPart\n";
-  ses_mail = ses_mail + "Content-Type: text/html; charset=us-ascii\n\n";
-  ses_mail = ses_mail + "This is the body of the email.\n\n";
-  ses_mail = ses_mail + "--NextPart\n";
-  ses_mail = ses_mail + "Content-Type: text/plain;\n";
-  ses_mail = ses_mail + "Content-Disposition: attachment; filename=\"attachment.txt\"\n\n";
-  ses_mail = ses_mail + "AWS Tutorial Series - Really cool file attachment!" + "\n\n";
-  ses_mail = ses_mail + "--NextPart--";
-
-  var params = {
-    RawMessage: { Data: new Buffer(ses_mail) },
-    Destinations: ["letrananhkiet1010@gmail.com"],
-    Source: "'AWS Tutorial Series' <" + email + ">'"
-  };
-
-  ses.sendRawEmail(params, function (err, data) {
-    if (err) {
-      res.send(err);
-    }
-    else {
-      res.send(data);
-    }
-  });
 });
 
 app.get('/list', function (req, res) {

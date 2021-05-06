@@ -1,13 +1,12 @@
-const sgMail = require("@sendgrid/mail");
 const {
   checkoutNganLuong,
   callbackNganLuong,
 } = require("./nganluong-handlers");
 const Transaction = require("../models/transaction.model");
-sgMail.setApiKey(process.env.MAIL_KEY);
+const { Mail } = require("./mail.js");
+
 
 exports.checkout = async (req, res) => {
-  console.log("body", req.body);
   const { email, payment_method, bank_code } = req.body;
   if (payment_method === "nganluong" || payment_method === "nganluongvisa") {
     const userAgent = req.headers["user-agent"];
@@ -136,13 +135,13 @@ exports.callback = async (req, res) => {
       const message = res.locals.message;
       if (isSucceed) {
         const trans = await Transaction.findOne({ email: res.locals.email }).exec();
+
+        console.log('trans pending', trans);
+
         const { token, email, created_by } = trans;
 
-        const emailData = {
-          from: process.env.EMAIL_FROM,
-          to: email,
-          subject: "[AMERITEC] ĐƯỜNG DẪN KÍCH HOẠT TÀI KHOẢN",
-          html: `
+        const subject = "[AMERITEC] ĐƯỜNG DẪN KÍCH HOẠT TÀI KHOẢN";
+        const html = `
           <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -332,38 +331,26 @@ exports.callback = async (req, res) => {
 </div>
     </body>
 </html>
-            `,
-        };
+            `;
 
-        await sgMail.send(emailData, async (error, result) => {
-          if (error) {
-            console.log(error.response.body);
-            return res.status(400).json({
-              success: false,
-              errors: [
-                {
-                  label: "mail-server",
-                  message: "Không gửi mail được.Vui lòng thử lại sau",
-                },
-              ],
-            });
-          } else {
-            console.log("active mail sended!!!! to", created_by);
-            await Transaction.findOneAndUpdate(
-              { $and: [{ email }, { status: "pending" }] },
-              {
-                status: "success",
-                approved_time: new Date().toLocaleString("vi", {
-                  timeZone: "Asia/Ho_Chi_Minh"
-                }),
-                approved_by: "auto",
-                orderId,
-                amount: price,
-                token: ""
-              }
-            ).exec();
-          }
-        });
+        try {
+
+          await Mail(email, html, subject);
+          console.log("active mail sended!!!! to", email);
+          await Transaction.findOneAndUpdate(
+            { $and: [{ email }, { status: "pending" }] },
+            {
+              status: "success",
+              approved_time: new Date().toLocaleString("vi", {
+                timeZone: "Asia/Ho_Chi_Minh",
+              }),
+              approved_by: 'admin',
+              amount: process.env.PERSIONAL_PRICE,
+            }
+          ).exec();
+        } catch (err) {
+          console.log("err", err);
+        }
         return res.redirect(
           `${process.env.CLIENT_URL}/pay-success/${isSucceed}/${title}/${email}/${orderId}/${price}/${message}`
         );
