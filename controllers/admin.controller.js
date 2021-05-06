@@ -102,7 +102,16 @@ exports.helperInsert = async (req, res,) => {
     element.created_time = new Date(element.user_registered);
     element.buy_package = listdoanhnghiep.includes(element.user_login) ? "1" : "2";
     element.be_member = true;
-
+    element.full_name = element.display_name;
+    element.expired = false;
+    const father = listSugarDaddies.filter(({ user_id }) => user_id == element.id_ameritecjsc);
+    if (father) {
+      const userfather = await User.findOne({ id_ameritecjsc: father.meta_value }).exec();
+      element.parentId = userfather._id;
+    }
+    else {
+      element.parentId = "AMERITEC2021";
+    }
     await element.save(function (err) {
       if (err) {
         console.log("fail to save users!");
@@ -562,12 +571,12 @@ exports.createAdmin = async (req, res) => {
   var validUserEmail = await User.findOne({ email }).exec();
   var validUserPhone = await User.findOne({ phone }).exec();
 
-  if(validUserEmail) {
-    errors.push({label: "email", err_message: "Email đã được sử dụng"});
+  if (validUserEmail) {
+    errors.push({ label: "email", err_message: "Email đã được sử dụng" });
   }
 
-  if(validUserPhone) {
-    errors.push({label: "phone", err_message: "Số điện thoại đã được sử dụng"});
+  if (validUserPhone) {
+    errors.push({ label: "phone", err_message: "Số điện thoại đã được sử dụng" });
   }
 
 
@@ -597,7 +606,7 @@ exports.createAdmin = async (req, res) => {
           });
 
           user.save((err) => {
-            if(err) {
+            if (err) {
               console.log(err);
             } else {
               res.json({

@@ -13,6 +13,9 @@ const userSchema = new mongoose.Schema(
     full_name: {
       type: String
     },
+    display_name: {
+      type: String
+    },
     id_ameritecjsc: {
       type: String
     },

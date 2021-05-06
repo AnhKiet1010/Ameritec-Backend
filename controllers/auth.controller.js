@@ -340,13 +340,13 @@ exports.registerController = async (req, res) => {
     if (be_member !== 'false') {
 
       const files = req.files;
-  
+
       if (files.CMND_Front && files.CMND_Back) {
         const randomstring = randomString();
 
         // name of front image
         cmndMT = randomstring + '_front.' + files.CMND_Front[0].filename.split('.').pop();
-        fs.rename('./' + files.CMND_Front[0].path, './public/uploads/CMND/' + cmndMT , (err) => {
+        fs.rename('./' + files.CMND_Front[0].path, './public/uploads/CMND/' + cmndMT, (err) => {
           if (err) console.log(err);
         });
 
@@ -365,7 +365,7 @@ exports.registerController = async (req, res) => {
             err_message: "Vui lòng tải lên mặt sau CMND",
           });
       }
-  
+
       if (id_code === "") {
         errors.push({
           label: "id_code",
@@ -390,27 +390,27 @@ exports.registerController = async (req, res) => {
           err_message: "Vui lòng chọn nơi cấp CMND",
         });
       }
-  
+
       if (bank === "") {
         errors.push({
           label: "bank",
           err_message: "Vui lòng chọn ngân hàng bạn đang sử dụng",
         });
       }
-  
+
       if (bank_name === "") {
         errors.push({
           label: "bank_name",
           err_message: "Vui lòng điền tên tài khoản của Bạn",
         });
       }
-  
+
       const user_repeat_id_code = await User.findOne({ $and: [{ id_code: id_code }, { id_code: { $ne: "" } }] }).exec();
       const user_repeat_bank_account = await User.findOne({
         $and: [{ bank_account: bank_account }, { bank_account: { $ne: "" } }]
       }).exec();
       const user_repeat_tax_code = await User.findOne({ $and: [{ tax_code: tax_code }, { tax_code: { $ne: "" } }] }).exec();
-  
+
       if (user_repeat_id_code) {
         errors.push({
           label: "id_code",
@@ -676,7 +676,7 @@ async function processDataActivation(data, token) {
 
       if (links.length === 0) {
         console.log(`Lấy link active thất bại! Vui lòng thử lại sau`);
-        unSavedErr.push({field: "links"});
+        unSavedErr.push({ field: "links" });
       }
 
       // --------------- SEND SUCCESS MAIL -------------------
@@ -710,7 +710,7 @@ async function processDataActivation(data, token) {
 exports.activationController = async (req, res) => {
   const { token } = req.body;
 
-  const penddingTrans = await Transaction.findOne({token}).exec();
+  const penddingTrans = await Transaction.findOne({ token }).exec();
 
   if (penddingTrans) {
     jwt.verify(
@@ -727,19 +727,19 @@ exports.activationController = async (req, res) => {
           await processDataActivation(jwt.decode(token), token);
         }
       });
-      res.json({
-        status: 200,
-        message:
-          "🎉 Chúng tôi đã tiếp nhận yêu cầu của Bạn.Vui lòng kiểm tra Email để xác nhận đăng ký thành công",
-        errors: [],
-      });
+    res.json({
+      status: 200,
+      message:
+        "🎉 Chúng tôi đã tiếp nhận yêu cầu của Bạn.Vui lòng kiểm tra Email để xác nhận đăng ký thành công",
+      errors: [],
+    });
   } else {
     res.json({
       status: 401,
       message:
         "Tài khoản của Bạn đã được kích hoạt.Vui lòng đăng nhập",
       errors: [],
-    });    
+    });
   }
 };
 
