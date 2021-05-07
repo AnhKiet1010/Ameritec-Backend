@@ -222,6 +222,7 @@ exports.getDashboard = async (req, res) => {
   //const { id } = req.params;
   //try {
   const filter = req.query.filterCode;
+  const watch = req.query.watch;
   const countPersonPackages = await countTotalPersonPackage();
   const countBusinessPackages = await countTotalBusinessPackage();
   const date = new Date();
@@ -229,36 +230,42 @@ exports.getDashboard = async (req, res) => {
   listUser.forEach(element => {
     element.created_time = new Date(element.created_time);
   });
+  
   var kq = [];
-  switch (filter) {
-    case '1':
-      for (let i = 0; i < listUser.length; i++) {
-        if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth(), date.getDate())) {
-          kq.push(listUser[i]);
+  if(watch !== 'false') {
+    var list = await User.find({$and: [{ role: { $ne: "admin" } }, {expired: true} ]}).sort({ _id: -1 }).exec();
+    kq = [...list];
+  } else {
+    switch (filter) {
+      case '1':
+        for (let i = 0; i < listUser.length; i++) {
+          if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth(), date.getDate())) {
+            kq.push(listUser[i]);
+          }
         }
-      }
-      break;
-    case '2':
-      for (let i = 0; i < listUser.length; i++) {
-        if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth(), date.getDate() - 7)) {
-          kq.push(listUser[i]);
+        break;
+      case '2':
+        for (let i = 0; i < listUser.length; i++) {
+          if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth(), date.getDate() - 7)) {
+            kq.push(listUser[i]);
+          }
         }
-      }
-      break;
-    case '3':
-      for (let i = 0; i < listUser.length; i++) {
-        if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth() - 1, date.getDate())) {
-          kq.push(listUser[i]);
+        break;
+      case '3':
+        for (let i = 0; i < listUser.length; i++) {
+          if (new Date(listUser[i].created_time) > new Date(date.getFullYear(), date.getMonth() - 1, date.getDate())) {
+            kq.push(listUser[i]);
+          }
         }
-      }
-      break;
-    case '4':
-      for (let i = 0; i < listUser.length; i++) {
-        if (new Date(listUser[i].created_time) > new Date(date.getFullYear() - 1, date.getMonth(), date.getDate() - 7)) {
-          kq.push(listUser[i]);
+        break;
+      case '4':
+        for (let i = 0; i < listUser.length; i++) {
+          if (new Date(listUser[i].created_time) > new Date(date.getFullYear() - 1, date.getMonth(), date.getDate() - 7)) {
+            kq.push(listUser[i]);
+          }
         }
-      }
-      break;
+        break;
+    }
   }
 
   res.json({
@@ -286,7 +293,6 @@ exports.getDashboard = async (req, res) => {
 
 exports.getUser = async (req, res) => {
   const { id } = req.params;
-  console.log("id", id);
 
   var user = await User.findOne({ role: { $ne: "admin" }, _id: id }).exec();
 
@@ -306,6 +312,13 @@ exports.getUser = async (req, res) => {
         { label: "Số tài khoản", value: user.bank_account },
         { label: "Ngân hàng", value: user.bank },
         { label: "Tên tài khoản", value: user.bank_name },
+        { label: "Link giới thiệu nhóm 1", value: `${process.env.CLIENT_URL}/referral/${user._id}/1`},
+        { label: "Link giới thiệu nhóm 2", value: `${process.env.CLIENT_URL}/referral/${user._id}/2`},
+        { label: "Link giới thiệu nhóm 3", value: `${process.env.CLIENT_URL}/referral/${user._id}/3`}
+
+
+
+        
       ] : [
         { label: "Họ và tên", value: user.full_name },
         { label: "Email", value: user.email },
