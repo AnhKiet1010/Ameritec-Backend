@@ -2,6 +2,8 @@ const User = require("../models/user.model");
 const Tree = require("../models/tree.model");
 const Transaction = require("../models/transaction.model");
 const Commission = require("../models/commission.model");
+const Activation = require("../models/activation.model");
+const axios = require("axios");
 const bcrypt = require("bcrypt");
 const {
   countTotalChildMemberForLevel,
@@ -9,7 +11,8 @@ const {
   getFullChildren,
   getData,
   countTotalChildMember,
-  randomString
+  randomString,
+  upgradeMail
 } = require("./method");
 const fs = require('fs');
 
@@ -148,6 +151,90 @@ exports.tree = async (req, res) => {
   });
 };
 
+const getActiveLink = async (email, full_name, phone) => {
+  let accessToken = "";
+  let groupId = "";
+  var links = [];
+  await axios
+    .post(`${process.env.APP_ZIMPERIUM_LOGIN_LINK}`, {
+      clientId: process.env.APP_ZIMPERIUM_CLIENT,
+      secret: process.env.APP_ZIMPERIUM_SECRET,
+    })
+    .then((res) => {
+      accessToken = res.data.accessToken;
+    })
+    .catch((err) => {
+      console.log("err in get active link accessToken", err);
+    });
+
+  await axios
+    .get(`${process.env.APP_GET_GROUPS_LINK}`, {
+      headers: {
+        Authorization: "Bearer " + accessToken,
+        ContentType: "application/json",
+      },
+    })
+    .then((res) => {
+      groupId = res.data[0].id;
+    })
+    .catch((err) => {
+      console.log("err in get active link groupId", err);
+    });
+
+  for (let i = 1; i <= 3; i++) {
+    let newEmail = email.split("@");
+
+    let result = newEmail[0] + i + "@" + newEmail[1];
+    await axios
+      .post(
+        `${process.env.APP_CREATE_USER_LINK}`,
+        {
+          activationLimit: 4,
+          email: result,
+          firstName: full_name,
+          groupId,
+          lastName: `${i}`,
+          phoneNumber: phone,
+          sendEmailInvite: false,
+          sendSmsInvite: false,
+        },
+        {
+          headers: {
+            Authorization: "Bearer " + accessToken,
+            ContentType: "application/json",
+          },
+        }
+      )
+      .then(async (res) => {
+        links.push(res.data.shortToken);
+
+        const activation = new Activation({
+          linkId: res.data.id,
+          accountId: res.data.accountId,
+          groupId: res.data.groupId,
+          firstName: res.data.firstName,
+          lastName: res.data.lastName,
+          activationLimit: res.data.activationLimit,
+          activationCount: res.data.activationCount,
+          licenseJwt: res.data.licenseJwt,
+          shortToken: res.data.shortToken,
+          created: res.data.created,
+          modified: res.data.modified,
+        });
+
+        await activation.save((err) => {
+          if (err) {
+            console.log("err when save activation", err);
+          }
+        });
+      })
+      .catch((err) => {
+        console.log("err in get active link", err);
+      });
+  }
+  return links;
+};
+
 exports.upgrade = async (req, res) => {
   const {
     user_id,
@@ -224,25 +311,53 @@ exports.upgrade = async (req, res) => {
       errors
     });
   } else {
-    await User.findOneAndUpdate({ _id: user_id }, {
-      id_code,
-      id_time,
-      issued_by,
-      bank,
-      bank_account,
-      bank_name,
-      tax_code,
-      buy_package: "2",
-      be_member: "true",
-      cmndMT,
-      cmndMS
-    }).exec();
+    const user = await User.findOne({_id: user_id}).exec();
+    console.log("user", user);
+    
+    if(user.buy_package == "1") {
+      const links = await getActiveLink(user.email, user.full_name, user.phone);
+      upgradeMail(user.full_name, user.email, user.phone, links);
 
-    res.json({
-      status: 200,
-      message: "Nâng cấp thành công.Vui lòng đăng nhập lại",
-      errors: []
-    });
+      await User.findOneAndUpdate({ _id: user_id }, {
+        id_code,
+        id_time,
+        issued_by,
+        bank,
+        bank_account,
+        bank_name,
+        tax_code,
+        buy_package: "2",
+        be_member: "true",
+        cmndMT,
+        cmndMS
+      }).exec();
+      
+      res.json({
+        status: 200,
+        message: "Nâng cấp thành công.Vui lòng đăng nhập lại! Link kích hoạt APP đã được gửi đến Email của Bạn",
+        errors: []
+      });
+    } else {
+      await User.findOneAndUpdate({ _id: user_id }, {
+        id_code,
+        id_time,
+        issued_by,
+        bank,
+        bank_account,
+        bank_name,
+        tax_code,
+        buy_package: "2",
+        be_member: "true",
+        cmndMT,
+        cmndMS
+      }).exec();
+      
+      res.json({
+        status: 200,
+        message: "Nâng cấp thành công.Vui lòng đăng nhập lại",
+        errors: []
+      });
+    }
   }
 }
 
