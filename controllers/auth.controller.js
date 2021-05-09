@@ -16,7 +16,7 @@ const saltRounds = 10;
 const getActiveLink = async (email, full_name, phone, buy_package) => {
   let accessToken = "";
   let groupId = "";
-  let links = [];
+  var links = [];
   await axios
     .post(`${process.env.APP_ZIMPERIUM_LOGIN_LINK}`, {
       clientId: process.env.APP_ZIMPERIUM_CLIENT,
@@ -48,11 +48,11 @@ const getActiveLink = async (email, full_name, phone, buy_package) => {
       .post(
         `${process.env.APP_CREATE_USER_LINK}`,
         {
-          activationLimit: 4,
+          activationLimit: 10,
           email: `${email}`,
           firstName: full_name,
           groupId,
-          lastName: "",
+          lastName: "1",
           phoneNumber: phone,
           sendEmailInvite: false,
           sendSmsInvite: false,
@@ -82,10 +82,10 @@ const getActiveLink = async (email, full_name, phone, buy_package) => {
         await activation.save((err) => {
           if (err) {
             console.log("err when save activation", err);
-          } else {
-            links.push(res.data.shortToken);
           }
         });
+        links.push(res.data.shortToken);
+        console.log('link in get', links);
       })
       .catch((err) => {
         console.log("err in get active link", err);
@@ -143,7 +143,7 @@ const getActiveLink = async (email, full_name, phone, buy_package) => {
         });
     }
   }
-
+  
   return links;
 };
 

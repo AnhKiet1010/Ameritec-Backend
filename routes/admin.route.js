@@ -13,7 +13,9 @@ const {
     getUser,
     updateAdmin,
     getStorage,
-    createAdmin
+    createAdmin,
+    createPolicy,
+    policy
 } = require('../controllers/admin.controller');
 
 const { helperInsert } = require('../controllers/inser.data');
@@ -29,5 +31,8 @@ router.post('/update-admin/:id', updateAdmin);
 router.post('/edit-tree', editTree);
 router.post('/change-tree', changeTree);
 router.post('/create-admin', createAdmin);
+router.post('/create-policy', createPolicy);
+router.get('/policy', policy);
+
 
 module.exports = router;
