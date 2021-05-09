@@ -19,7 +19,7 @@ const connectDB = require("./config/db");
 // app.use(express.json());
 
 // parse application/json
-app.use(express.json({limit: '50mb', extended: true}));
+app.use(express.json({ limit: '50mb', extended: true }));
 
 // Dev Login Middleware
 app.use(cors());
@@ -98,5 +98,6 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`App listening on port ${PORT}`);
 });
+
 
 

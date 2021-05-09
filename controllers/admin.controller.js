@@ -9,13 +9,22 @@ const bcrypt = require("bcrypt");
 
 const saltRounds = 10;
 
+exports.getUserExpired = async (req, res,) => {
+  var list = await User.find({ expired: true }).exec();
+  res.json({
+    status: 200,
+    data: list,
+    errors: [],
+  });
+};
 
 exports.helperInsert = async (req, res,) => {
+
   var listSugarDaddies = req.body.listSugarDaddy;
   var listdoanhnghieps = req.body.listGoiDoanhNghiep;
   var listdoanhnghiep = listdoanhnghieps.split(",");
   var list = await User.find({ id_ameritecjsc: { $ne: null } }).exec();
-  //return res.json({
+  // return res.json({
   //   status: 200,
   //   errors: [listSugarDaddies.filter(({ meta_value }) => meta_value == '1')],
   // });
@@ -106,24 +115,45 @@ exports.helperInsert = async (req, res,) => {
     element.full_name = element.display_name;
     element.expired = false;
     const father = listSugarDaddies.filter(({ user_id }) => user_id == element.id_ameritecjsc);
-    if (father) {
-      const userfather = await User.findOne({ id_ameritecjsc: father.meta_value }).exec();
-      element.parentId = userfather._id;
+
+    if (father[0] != null) {
+      const userfather = await User.findOne({ id_ameritecjsc: father[0].meta_value }).exec();
+
+      if (userfather) {
+        element.parentId = userfather._id;
+      }
+      else {
+        element.parentId = "AMERITEC2021";
+      }
     }
     else {
       element.parentId = "AMERITEC2021";
     }
+    // User.findByIdAndUpdate(element._id, {
+    //   $set:
+    //   {
+    //     password: element.password,
+    //     avatar: element.avatar,
+    //     role: element.role,
+    //     created_time: element.created_time,
+    //     buy_package: element.buy_package,
+    //     be_member: element.be_member,
+    //     full_name: element.full_name,
+    //     expired: element.expired,
+    //     parentId: element.parentId
+    //   }
+    // }, { new: true }, function (err, updatedDocument) {
+    //   element.save();
+    // });
     await element.save(function (err) {
       if (err) {
-        console.log("fail to save users!");
+        console.log("fail to update user: " + element.id_ameritecjsc);
       }
     });
   };
-  // var list = await User.findOne({ id_ameritecjsc: "81" }).exec();
-  // console.log(list.user_registered);
   res.json({
     status: 200,
-    errors: [],
+    errors: ["hi"],
   });
 };
 
@@ -317,7 +347,12 @@ exports.getUser = async (req, res) => {
   const { id } = req.params;
 
   var user = await User.findOne({ role: { $ne: "admin" }, _id: id }).exec();
-
+  if (user == null) {
+    return res.json({
+      status: 404,
+      errors: ["Not Found The User"],
+    });
+  }
 
   res.json({
     status: 200,
