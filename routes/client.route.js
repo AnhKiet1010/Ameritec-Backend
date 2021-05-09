@@ -9,7 +9,8 @@ const {
     upgrade,
     editProfile,
     inviteUrl,
-    transaction
+    transaction,
+    policy
 } = require('../controllers/client.controller');
 
 router.get('/:id', dashboard);
@@ -19,5 +20,6 @@ router.get('/profile/:id', profile);
 router.post('/profile/edit', editProfile);
 router.get('/transaction/:id',transaction);
 router.post('/referral', inviteUrl);
+router.get('/policy/:id', policy);
 
 module.exports = router;

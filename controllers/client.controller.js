@@ -3,6 +3,7 @@ const Tree = require("../models/tree.model");
 const Transaction = require("../models/transaction.model");
 const Commission = require("../models/commission.model");
 const Activation = require("../models/activation.model");
+const Policy = require("../models/policy.model");
 const axios = require("axios");
 const bcrypt = require("bcrypt");
 const {
@@ -610,6 +611,21 @@ exports.editProfile = async (req, res) => {
     }
   });
 };
+
+exports.policy = async (req, res) => {
+  const { id } = req.params;
+
+  const listPolicy = await Policy.find({}).sort({_id: -1}).exec();
+  const newPolicy = listPolicy[0];
+
+  await User.findOneAndUpdate({_id: id}, {readPolicy: true}).exec();
+
+  res.json({
+    status: 200,
+    errors: [],
+    data: newPolicy
+  });
+}
 
 exports.inviteUrl = async (req, res) => {
   const { id } = req.body;

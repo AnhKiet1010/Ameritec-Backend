@@ -129,6 +129,10 @@ const userSchema = new mongoose.Schema(
     },
     expired: {
       type: Boolean
+    },
+    readPolicy: {
+      type: Boolean,
+      default: false
     }
   }
 );

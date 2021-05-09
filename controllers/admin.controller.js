@@ -4,6 +4,7 @@ const Tree = require("../models/tree.model");
 const Transaction = require("../models/transaction.model");
 const { PROVINCES } = require("../constants/province");
 const jwt = require("jsonwebtoken");
+const Policy = require("../models/policy.model");
 const bcrypt = require("bcrypt");
 
 const saltRounds = 10;
@@ -116,6 +117,18 @@ exports.helperInsert = async (req, res,) => {
     errors: [],
   });
 };
+
+exports.policy = async (req, res) => {
+
+  const listPolicy = await Policy.find({}).sort({_id: -1}).exec();
+  const newPolicy = listPolicy[0];
+
+  res.json({
+    status: 200,
+    errors: [],
+    data: newPolicy
+  });
+}
 
 const countTotalChildMember = async (subTreeIdList) => {
   var count = subTreeIdList.length;
@@ -230,10 +243,10 @@ exports.getDashboard = async (req, res) => {
   listUser.forEach(element => {
     element.created_time = new Date(element.created_time);
   });
-  
+
   var kq = [];
-  if(watch !== 'false') {
-    var list = await User.find({$and: [{ role: { $ne: "admin" } }, {expired: true} ]}).sort({ _id: -1 }).exec();
+  if (watch !== 'false') {
+    var list = await User.find({ $and: [{ role: { $ne: "admin" } }, { expired: true }] }).sort({ _id: -1 }).exec();
     kq = [...list];
   } else {
     switch (filter) {
@@ -312,13 +325,13 @@ exports.getUser = async (req, res) => {
         { label: "Số tài khoản", value: user.bank_account },
         { label: "Ngân hàng", value: user.bank },
         { label: "Tên tài khoản", value: user.bank_name },
-        { label: "Link giới thiệu nhóm 1", value: `${process.env.CLIENT_URL}/referral/${user._id}/1`},
-        { label: "Link giới thiệu nhóm 2", value: `${process.env.CLIENT_URL}/referral/${user._id}/2`},
-        { label: "Link giới thiệu nhóm 3", value: `${process.env.CLIENT_URL}/referral/${user._id}/3`}
+        { label: "Link giới thiệu nhóm 1", value: `${process.env.CLIENT_URL}/referral/${user._id}/1` },
+        { label: "Link giới thiệu nhóm 2", value: `${process.env.CLIENT_URL}/referral/${user._id}/2` },
+        { label: "Link giới thiệu nhóm 3", value: `${process.env.CLIENT_URL}/referral/${user._id}/3` }
 
 
 
-        
+
       ] : [
         { label: "Họ và tên", value: user.full_name },
         { label: "Email", value: user.email },
@@ -574,12 +587,12 @@ exports.createAdmin = async (req, res) => {
   var validUserEmail = await User.findOne({ email }).exec();
   var validUserPhone = await User.findOne({ phone }).exec();
 
-  if(validUserEmail) {
-    errors.push({label: "email", err_message: "Email đã được sử dụng"});
+  if (validUserEmail) {
+    errors.push({ label: "email", err_message: "Email đã được sử dụng" });
   }
 
-  if(validUserPhone) {
-    errors.push({label: "phone", err_message: "Số điện thoại đã được sử dụng"});
+  if (validUserPhone) {
+    errors.push({ label: "phone", err_message: "Số điện thoại đã được sử dụng" });
   }
 
 
@@ -609,7 +622,7 @@ exports.createAdmin = async (req, res) => {
           });
 
           user.save((err) => {
-            if(err) {
+            if (err) {
               console.log(err);
             } else {
               res.json({
@@ -631,6 +644,32 @@ exports.createAdmin = async (req, res) => {
       message: "Có lỗi xảy ra!"
     });
   }
+}
+
+exports.createPolicy = async (req, res) => {
+  const { text } = req.body;
+
+  const policy = new Policy({
+    text
+  });
+
+  await policy.save((err) => {
+    if(err) {
+      console.log(err);
+      res.json({
+        status: 401,
+        errors: [],
+        message: "Có lỗi xảy ra!"
+      });
+    } else {
+      res.json({
+        status: 200,
+        errors: [],
+        message: "Đã lưu thành công"
+      });
+    }
+  });
+
 }
 
 exports.updateAdmin = async (req, res) => {
