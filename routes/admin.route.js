@@ -17,13 +17,11 @@ const {
     createPolicy,
     policy,
     helperInsert,
-    getUserExpired
 } = require('../controllers/admin.controller');
 
 //const { helperInsert } = require('../controllers/inser.data');
 
 router.post('/helperInsert', helperInsert);
-router.get('/getUserExpired', getUserExpired);
 router.get('/dashboard', getDashboard);
 router.get('/storage', getStorage);
 router.get('/user/:id', getUser);
