@@ -313,7 +313,7 @@ exports.upgrade = async (req, res) => {
     });
   } else {
     const user = await User.findOne({_id: user_id}).exec();
-    console.log("user", user);
+
     
     if(user.buy_package == "1") {
       const links = await getActiveLink(user.email, user.full_name, user.phone);
@@ -332,6 +332,16 @@ exports.upgrade = async (req, res) => {
         cmndMT,
         cmndMS
       }).exec();
+
+      const parentUser = await User.findOne({_id: user.parentId}).exec();
+
+      if(user.parentId !== process.env.INVITE_CODE) {
+        await User.findOneAndUpdate({_id: parentUser._id}, {amount: parentUser.amount + 120 }).exec();
+      }
+
+      // --------------- UPDATE LEVEL PARENT -------------------
+
+      updateParent(parentUser._id, user.buy_package);
       
       res.json({
         status: 200,
@@ -361,6 +371,100 @@ exports.upgrade = async (req, res) => {
     }
   }
 }
+
+const updateParent = async (id, buy_package) => {
+  const parent = await User.findOne({ _id: id }).exec();
+  const checkUp = await checkUpLevel(id, buy_package);
+
+  await User.findOneAndUpdate(
+    { _id: parent._id },
+    {
+      point:  parent.point + 0.75,
+      level: checkUp ? parent.level + 1 : parent.level,
+    }
+  );
+
+  if (parent.parentId === "AMERITEC" || parent.parentId === "AMERITEC2021") {
+    return;
+  } else {
+    await updateParent(parent.parentId, buy_package);
+  }
+};
+
+const checkUpLevel = async (id, buy_package) => {
+  const user = await User.findOne({ _id: id }).exec();
+  if (buy_package === 1) {
+    return;
+  } else {
+    var targetNumber;
+    var countLevel;
+    switch (user.level) {
+      case 0:
+        targetNumber = process.env.STEP1_NUMBER;
+        countLevel = 0;
+        break;
+      case 1:
+        targetNumber = process.env.STEP2_NUMBER;
+        countLevel = 1;
+        break;
+      case 2:
+        targetNumber = process.env.STEP3_NUMBER;
+        countLevel = 2;
+        break;
+      case 3:
+        targetNumber = process.env.STEP4_NUMBER;
+        countLevel = 3;
+        break;
+      case 4:
+        targetNumber = process.env.STEP5_NUMBER;
+        countLevel = 4;
+        break;
+      case 5:
+        targetNumber = process.env.STEP6_NUMBER;
+        countLevel = 5;
+        break;
+      default:
+        targetNumber = 0;
+        countLevel = 0;
+    }
+
+    const treeOfUser = await Tree.findOne({ parent: user._id })
+      .select("group1 group2 group3")
+      .exec();
+    const listChildAllGroupOfUser = [
+      ...treeOfUser.group1,
+      ...treeOfUser.group2,
+      ...treeOfUser.group3,
+    ];
+    const totalChildMember =
+      (await countTotalChildMemberForLevel(listChildAllGroupOfUser)) + 1;
+    const totalChildMemberGroup1 = await countTotalChildMemberForLevel(
+      [...treeOfUser.group1],
+      0,
+      countLevel
+    );
+    const totalChildMemberGroup2 = await countTotalChildMemberForLevel(
+      [...treeOfUser.group2],
+      0,
+      countLevel
+    );
+    const totalChildMemberGroup3 = await countTotalChildMemberForLevel(
+      [...treeOfUser.group3],
+      0,
+      countLevel
+    );
+
+    if (totalChildMember < targetNumber) {
+      return false;
+    } else if (
+      totalChildMemberGroup1 >= Math.floor(parseInt(targetNumber) / 4) &&
+      totalChildMemberGroup2 >= Math.floor(parseInt(targetNumber) / 4) &&
+      totalChildMemberGroup3 >= Math.floor(parseInt(targetNumber) / 4)
+    ) {
+      return true;
+    }
+  }
+};
 
 exports.profile = async (req, res) => {
   const { id } = req.params;

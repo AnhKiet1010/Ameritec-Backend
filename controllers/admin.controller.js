@@ -697,8 +697,8 @@ exports.updateAdmin = async (req, res) => {
 }
 
 exports.editTree = async (req, res) => {
-  const { values } = req.body;
-  const { move_acc, root_acc } = values;
+  console.log('values', req.body);
+  const { move_acc, root_acc } = req.body;
 
   const arr = root_acc.split("/");
 
@@ -717,11 +717,11 @@ exports.editTree = async (req, res) => {
 
   if (!moveItem) {
     return res.json({
-      success: false,
+      status: 401,
       errors: [
         {
           label: "move_acc",
-          err_message: "Không tìm thấy tài khoản cần di chuyển.Kiểm tra lại",
+          message: "Không tìm thấy tài khoản cần di chuyển.Kiểm tra lại",
         },
       ],
     });
@@ -729,11 +729,11 @@ exports.editTree = async (req, res) => {
 
   if (!rootItem) {
     return res.json({
-      success: false,
+      status: 401,
       errors: [
         {
           label: "root_acc",
-          err_message: "Không tìm thấy tài khoản cần di chuyển.Kiểm tra lại",
+          message: "Không tìm thấy tài khoản cần di chuyển.Kiểm tra lại",
         },
       ],
     });
@@ -743,11 +743,11 @@ exports.editTree = async (req, res) => {
 
   if (moveItem.ParentId === rootItem._id) {
     return res.json({
-      success: false,
+      status: 401,
       errors: [
         {
           label: "root_acc",
-          err_message: "Địa chỉ chuyển đi không thay đổi.Xác nhận lại",
+          message: "Địa chỉ chuyển đi không thay đổi.Xác nhận lại",
         },
         {
           label: "move_acc",
@@ -758,11 +758,11 @@ exports.editTree = async (req, res) => {
 
   if (!rootItem) {
     return res.json({
-      success: false,
+      status: 401,
       errors: [
         {
           label: "root_acc",
-          err_message: "Không tìm thấy tài khoản cần chuyển đến.Kiểm tra lại",
+          message: "Không tìm thấy tài khoản cần chuyển đến.Kiểm tra lại",
         },
       ],
     });
@@ -821,6 +821,12 @@ exports.editTree = async (req, res) => {
         return;
       }
     }
+
+    res.json({
+      status: 200,
+      message: "Đã chỉnh sửa",
+      errors: []
+    })
   }
 };
 

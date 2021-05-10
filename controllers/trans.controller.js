@@ -241,6 +241,7 @@ exports.activeTrans = async (req, res) => {
     res.redirect(`${process.env.CLIENT_URL}/admin/active`);
 
   } catch (err) {
+    console.log("error", err);
     res.status(400).json({
       success: false,
       errors: [

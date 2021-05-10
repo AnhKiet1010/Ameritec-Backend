@@ -5,11 +5,22 @@ const nodemailer = require("nodemailer");
 exports.Mail = async (email, html, subject) => {
 
   // create reusable transporter object using the default SMTP transport
+  // let transporter = nodemailer.createTransport({
+  //   pool: true,
+  //   host: "smtp.gmail.com",
+  //   port: 465,
+  //   secure: true, // use TLS
+  //   auth: {
+  //     user: process.env.AMERITEC_EMAIL,
+  //     pass: process.env.AMERITEC_EMAIL_PASS
+  //   }
+  // });
+
   let transporter = nodemailer.createTransport({
     pool: true,
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true, // use TLS
+    host: "sv3.tmail.vn",
+    port: 587,
+    secure: false, // use TLS
     auth: {
       user: process.env.AMERITEC_EMAIL,
       pass: process.env.AMERITEC_EMAIL_PASS
@@ -18,7 +29,7 @@ exports.Mail = async (email, html, subject) => {
 
   // send mail with defined transport object
   let info = await transporter.sendMail({
-    from: '"AMERITEC" <ameritec110919@gmail.com>', // sender address
+    from: '"AMERITEC" <info@ameritecjsc.com>', // sender address
     to: email, // list of receivers
     subject: subject, // Subject line
     html: html, // html body
