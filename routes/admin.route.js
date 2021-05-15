@@ -17,11 +17,13 @@ const {
     createPolicy,
     policy,
     helperInsert,
+    helperInsertCalLevel,
 } = require('../controllers/admin.controller');
 
 //const { helperInsert } = require('../controllers/inser.data');
 
 router.post('/helperInsert', helperInsert);
+router.post('/helperInsertCalLevel', helperInsertCalLevel);
 router.get('/dashboard', getDashboard);
 router.get('/storage', getStorage);
 router.get('/user/:id', getUser);
@@ -34,6 +36,5 @@ router.post('/change-tree', changeTree);
 router.post('/create-admin', createAdmin);
 router.post('/create-policy', createPolicy);
 router.get('/policy', policy);
-
 
 module.exports = router;
