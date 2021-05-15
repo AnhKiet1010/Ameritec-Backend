@@ -9,15 +9,6 @@ const bcrypt = require("bcrypt");
 
 const saltRounds = 10;
 
-exports.getUserExpired = async (req, res,) => {
-  var list = await User.find({ expired: true }).exec();
-  res.json({
-    status: 200,
-    data: list,
-    errors: [],
-  });
-};
-
 exports.helperInsert = async (req, res,) => {
 
   var listSugarDaddies = req.body.listSugarDaddy;
@@ -568,6 +559,7 @@ const getTreeOfOneAgency = async (searchId) => {
     _id: searchUser._id,
     avatar: searchUser.avatar,
     full_name: searchUser.full_name,
+    buy_package: searchUser.buy_package,
     countChild: await countTotalChildMember(arrObjectOfSearchUsers),
     level: searchUser.level,
     child1: {
