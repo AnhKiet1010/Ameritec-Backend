@@ -8,6 +8,144 @@ const Policy = require("../models/policy.model");
 const bcrypt = require("bcrypt");
 
 const saltRounds = 10;
+const updateParent = async (id, buy_package) => {
+  const parent = await User.findOne({ _id: id }).exec();
+  const checkUp = await checkUpLevel(id, buy_package);
+
+  await User.findOneAndUpdate(
+    { _id: parent._id },
+    {
+      point: buy_package === "1" ? parent.point + 0.25 : parent.point + 1,
+      level: checkUp ? parent.level + 1 : parent.level,
+    }
+  );
+
+  if (parent.parentId === "AMERITEC" || parent.parentId === "AMERITEC2021") {
+    return;
+  } else {
+    await updateParent(parent.parentId, buy_package);
+  }
+};
+
+const checkUpLevel = async (id, buy_package) => {
+  const user = await User.findOne({ _id: id }).exec();
+  if (buy_package === 1) {
+    return;
+  } else {
+    var targetNumber;
+    var countLevel;
+    switch (user.level) {
+      case 0:
+        targetNumber = process.env.STEP1_NUMBER;
+        countLevel = 0;
+        break;
+      case 1:
+        targetNumber = process.env.STEP2_NUMBER;
+        countLevel = 1;
+        break;
+      case 2:
+        targetNumber = process.env.STEP3_NUMBER;
+        countLevel = 2;
+        break;
+      case 3:
+        targetNumber = process.env.STEP4_NUMBER;
+        countLevel = 3;
+        break;
+      case 4:
+        targetNumber = process.env.STEP5_NUMBER;
+        countLevel = 4;
+        break;
+      case 5:
+        targetNumber = process.env.STEP6_NUMBER;
+        countLevel = 5;
+        break;
+      default:
+        targetNumber = 0;
+        countLevel = 0;
+    }
+
+    const treeOfUser = await Tree.findOne({ parent: user._id })
+      .select("group1 group2 group3")
+      .exec();
+    const listChildAllGroupOfUser = [
+      ...treeOfUser.group1,
+      ...treeOfUser.group2,
+      ...treeOfUser.group3,
+    ];
+    const totalChildMember =
+      (await countTotalChildMemberForLevel(listChildAllGroupOfUser)) + 1;
+    const totalChildMemberGroup1 = await countTotalChildMemberForLevel(
+      [...treeOfUser.group1],
+      0,
+      countLevel
+    );
+    const totalChildMemberGroup2 = await countTotalChildMemberForLevel(
+      [...treeOfUser.group2],
+      0,
+      countLevel
+    );
+    const totalChildMemberGroup3 = await countTotalChildMemberForLevel(
+      [...treeOfUser.group3],
+      0,
+      countLevel
+    );
+
+    if (totalChildMember < targetNumber) {
+      return false;
+    } else if (
+      totalChildMemberGroup1 >= Math.floor(parseInt(targetNumber) / 4) &&
+      totalChildMemberGroup2 >= Math.floor(parseInt(targetNumber) / 4) &&
+      totalChildMemberGroup3 >= Math.floor(parseInt(targetNumber) / 4)
+    ) {
+      return true;
+    }
+  }
+};
+
+const countTotalChildMemberForLevel = async (
+  subTreeIdList,
+  countLevel,
+  level
+) => {
+  var count = 0;
+  for (let id of subTreeIdList) {
+    let branchObject = await Tree.findOne({ parent: id })
+      .select("buy_package")
+      .exec();
+    if (branchObject.buy_package !== "1") {
+      count++;
+    }
+  }
+  
+  if (countLevel === level) {
+    return count;
+  } else {
+    for (let i = 0; i < subTreeIdList.length; i++) {
+      let branchObject = await Tree.findOne({ parent: subTreeIdList[i]._id })
+        .select("group1 group2 group3 buy_package")
+        .exec();
+
+      if (branchObject) {
+        let group = [
+          ...branchObject.group1,
+          ...branchObject.group2,
+          ...branchObject.group3,
+        ];
+        if (group.length !== 0 && branchObject.buy_package !== "1") {
+          count += await countTotalChildMemberForLevel(
+            group,
+            countLevel++,
+            level
+          );
+        } else {
+          return count;
+        }
+      } else {
+        continue;
+      }
+    }
+  }
+}
 
 exports.helperInsert = async (req, res,) => {
 
@@ -25,16 +163,27 @@ exports.helperInsert = async (req, res,) => {
     if (!treeElement) {
       const listSugarDaddy = listSugarDaddies.filter(({ meta_value }) => meta_value == element.id_ameritecjsc);
       const groupcon = [];
+      const groupcon2 = [];
+      const groupcon3 = [];
       for (const sugar of listSugarDaddy) {
         const usercon = await User.findOne({ id_ameritecjsc: sugar.user_id }).exec();
         if (usercon != null) {
-          groupcon.push(usercon._id);
+          if (groupcon.length < groupcon2.length | groupcon.length == groupcon2.length) {
+            groupcon.push(usercon._id);
+          }
+          else if (groupcon2.length < groupcon3.length | groupcon2.length == groupcon3.length) {
+            groupcon2.push(usercon._id);
+          }
+          else {
+            groupcon3.push(usercon._id);
+          }
+
         }
       }
       const tree = new Tree({
         group1: groupcon,
-        group2: [],
-        group3: [],
+        group2: groupcon2,
+        group3: groupcon3,
         parent: element._id,
         buy_package: listdoanhnghiep.includes(element.user_login) ? "1" : "2"
       });
@@ -47,13 +196,26 @@ exports.helperInsert = async (req, res,) => {
     else {
       const listSugarDaddy = listSugarDaddies.filter(({ meta_value }) => meta_value == element.id_ameritecjsc);
       const groupcon = [];
+      const groupcon2 = [];
+      const groupcon3 = [];
       for (const sugar of listSugarDaddy) {
         const usercon = await User.findOne({ id_ameritecjsc: sugar.user_id }).exec();
         if (usercon != null) {
-          groupcon.push(usercon._id);
+          if ((groupcon.length < groupcon2.length | groupcon.length == groupcon2.length) | groupcon.length < 3) {
+            groupcon.push(usercon._id);
+          }
+          else if ((groupcon2.length < groupcon3.length | groupcon2.length == groupcon3.length) | groupcon2.length < 3) {
+            groupcon2.push(usercon._id);
+          }
+          else {
+            groupcon3.push(usercon._id);
+          }
+
         }
       }
       treeElement.group1 = groupcon;
+      treeElement.group2 = groupcon2;
+      treeElement.group3 = groupcon3;
       treeElement.buy_package = listdoanhnghiep.includes(element.user_login) ? "1" : "2";
       if (element.id_ameritecjsc === '1') {
 
@@ -79,7 +241,8 @@ exports.helperInsert = async (req, res,) => {
         payment_method: "tienmat",
         phone: "no have",
         buy_package: listdoanhnghiep.includes(element.user_login) ? "1" : "2",
-        expired_time: new Date(paramdate.getFullYear() + 1, paramdate.getMonth(), paramdate.getDay(), paramdate.getHours(), paramdate.getMinutes(), paramdate.getMilliseconds())
+        amount: listdoanhnghiep.includes(element.user_login) ? "932000" : "3728000",
+        expired_time: new Date(paramdate.getFullYear() + 1, paramdate.getMonth(), paramdate.getDate(), paramdate.getHours(), paramdate.getMinutes(), paramdate.getMilliseconds())
       });
       await transaction.save(function (err) {
         if (err) {
@@ -89,6 +252,9 @@ exports.helperInsert = async (req, res,) => {
     }
     else {
       transElement.buy_package = listdoanhnghiep.includes(element.user_login) ? "1" : "2";
+      transElement.amount = listdoanhnghiep.includes(element.user_login) ? "932000" : "3728000";
+      const paramdate = new Date(element.user_registered);
+      transElement.expired_time = new Date(paramdate.getFullYear() + 1, paramdate.getMonth(), paramdate.getDate(), paramdate.getHours(), paramdate.getMinutes(), paramdate.getMilliseconds());
       await transElement.save(function (err) {
         if (err) {
           console.log("fail to update transaction!");
@@ -120,22 +286,6 @@ exports.helperInsert = async (req, res,) => {
     else {
       element.parentId = "AMERITEC2021";
     }
-    // User.findByIdAndUpdate(element._id, {
-    //   $set:
-    //   {
-    //     password: element.password,
-    //     avatar: element.avatar,
-    //     role: element.role,
-    //     created_time: element.created_time,
-    //     buy_package: element.buy_package,
-    //     be_member: element.be_member,
-    //     full_name: element.full_name,
-    //     expired: element.expired,
-    //     parentId: element.parentId
-    //   }
-    // }, { new: true }, function (err, updatedDocument) {
-    //   element.save();
-    // });
     await element.save(function (err) {
       if (err) {
         console.log("fail to update user: " + element.id_ameritecjsc);
@@ -147,10 +297,48 @@ exports.helperInsert = async (req, res,) => {
     errors: ["hi"],
   });
 };
-
+exports.helperInsertCalLevel = async (req, res,) => {
+  var list = await User.find({ id_ameritecjsc: { $ne: null } }).exec();
+  for (const element of list) {
+    let amount = 0;
+    let point = 0;
+    let level = 0;
+    if (element.parentId != "AMERITEC2021") {
+      updateParent(element.parentId, element.buy_package);
+    }
+    if (element.buy_package == "2") {
+      element.be_member = true;
+      await User.countDocuments({ parentId: element._id }, function (err, c) {
+        level += c * 160;
+      });
+    }
+    else {
+      element.be_member = false;
+    }
+    await User.countDocuments({ parentId: element._id, buy_package: "1" }, function (err, c) {
+      amount += c * 160;
+      point += c * 1;
+    });
+    await User.countDocuments({ parentId: element._id, buy_package: "2" }, function (err, c) {
+      amount += c * 40;
+      point += c * 0.25;
+    });
+    element.point = point;
+    element.amount = amount;
+    await element.save(function (err) {
+      if (err) {
+        console.log("fail to update user: " + element.id_ameritecjsc);
+      }
+    });
+  };
+  res.json({
+    status: 200,
+    errors: ["hi"],
+  });
+};
 exports.policy = async (req, res) => {
 
-  const listPolicy = await Policy.find({}).sort({_id: -1}).exec();
+  const listPolicy = await Policy.find({}).sort({ _id: -1 }).exec();
   const newPolicy = listPolicy[0];
 
   res.json({
@@ -690,7 +878,7 @@ exports.createPolicy = async (req, res) => {
   });
 
   await policy.save((err) => {
-    if(err) {
+    if (err) {
       console.log(err);
       res.json({
         status: 401,
