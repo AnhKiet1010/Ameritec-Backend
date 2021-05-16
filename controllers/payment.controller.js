@@ -196,9 +196,8 @@ const countTotalChildMemberForLevel = async (
 
 exports.checkout = async (req, res) => {
   const { email, payment_method, bank_code } = req.body;
+  console.log('body', req.body);
   if (payment_method === "nganluong" || payment_method === "nganluongvisa") {
-    const userAgent = req.headers["user-agent"];
-    console.log("userAgent", userAgent);
 
     const params = Object.assign({}, req.body);
 

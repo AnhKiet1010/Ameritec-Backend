@@ -4,6 +4,8 @@ const Transaction = require("../models/transaction.model");
 const Commission = require("../models/commission.model");
 const Activation = require("../models/activation.model");
 const Policy = require("../models/policy.model");
+const { PROVINCES } = require("../constants/province");
+const { BANK } = require("../constants/bank");
 const axios = require("axios");
 const bcrypt = require("bcrypt");
 const {
@@ -312,10 +314,10 @@ exports.upgrade = async (req, res) => {
       errors
     });
   } else {
-    const user = await User.findOne({_id: user_id}).exec();
+    const user = await User.findOne({ _id: user_id }).exec();
 
-    
-    if(user.buy_package == "1") {
+
+    if (user.buy_package == "1") {
       const links = await getActiveLink(user.email, user.full_name, user.phone);
       upgradeMail(user.full_name, user.email, user.phone, links);
 
@@ -333,16 +335,16 @@ exports.upgrade = async (req, res) => {
         cmndMS
       }).exec();
 
-      const parentUser = await User.findOne({_id: user.parentId}).exec();
+      const parentUser = await User.findOne({ _id: user.parentId }).exec();
 
-      if(user.parentId !== process.env.INVITE_CODE) {
-        await User.findOneAndUpdate({_id: parentUser._id}, {amount: parentUser.amount + 120 }).exec();
+      if (user.parentId !== process.env.INVITE_CODE) {
+        await User.findOneAndUpdate({ _id: parentUser._id }, { amount: parentUser.amount + 120 }).exec();
       }
 
       // --------------- UPDATE LEVEL PARENT -------------------
 
       updateParent(parentUser._id, user.buy_package);
-      
+
       res.json({
         status: 200,
         message: "Nâng cấp thành công.Vui lòng đăng nhập lại! Link kích hoạt APP đã được gửi đến Email của Bạn",
@@ -362,7 +364,7 @@ exports.upgrade = async (req, res) => {
         cmndMT,
         cmndMS
       }).exec();
-      
+
       res.json({
         status: 200,
         message: "Nâng cấp thành công.Vui lòng đăng nhập lại",
@@ -379,7 +381,7 @@ const updateParent = async (id, buy_package) => {
   await User.findOneAndUpdate(
     { _id: parent._id },
     {
-      point:  parent.point + 0.75,
+      point: parent.point + 0.75,
       level: checkUp ? parent.level + 1 : parent.level,
     }
   );
@@ -468,37 +470,42 @@ const checkUpLevel = async (id, buy_package) => {
 
 exports.profile = async (req, res) => {
   const { id } = req.params;
-  const user = await User.findOne({ _id: id })
-    .select(
-      "full_name phone birthday be_member gender id_code id_time issued_by tax_code cmndMT cmndMS"
-    )
-    .exec();
+  const user = await User.findOne({ _id: id }).exec();
 
-  if (user.be_member) {
-    res.json({
-      status: 200,
-      data: { user },
-      errors: [],
-      message: "",
-    });
-  } else {
-    res.json({
-      status: 200,
-      data: {
-        user: {
-          full_name: user.full_name,
-          phone: user.phone,
-          birthday: user.birthday,
-          gender: user.gender,
-        },
-      },
-      errors: [],
-      message: "",
-    });
-  }
+  res.json({
+    status: 200,
+    data: {
+      user,
+      result: user.buy_package === "2" ? [
+        { label: "Họ và tên", value: user.full_name },
+        { label: "Email", value: user.email },
+        { label: "Số điện thoại", value: user.phone },
+        { label: "Giới tính", value: user.gender === 2 ? "Nam" : user.gender === 3 ? "Nữ" : "N/A" },
+        { label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0] },
+        { label: "Số chứng minh thư", value: user.id_code },
+        { label: "Ngày cấp", value: new Date(user.id_time).toLocaleDateString("vi").split(",")[0] },
+        { label: "Nơi cấp", value: PROVINCES.find(pro => pro.value === user.issued_by).label },
+        { label: "Số tài khoản", value: user.bank_account },
+        { label: "Ngân hàng", value: BANK.find(b => b.value === user.bank).label },
+        { label: "Tên tài khoản", value: user.bank_name },
+        { label: "cmndMT", value: user.cmndMT },
+        { label: "cmndMS", value: user.cmndMS },
+      ] : [
+        { label: "Họ và tên", value: user.full_name },
+        { label: "Email", value: user.email },
+        { label: "Số điện thoại", value: user.phone },
+        { label: "Giới tính", value: user.gender === 2 ? "Nam" : user.gender === 3 ? "Nữ" : "N/A" },
+        { label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0] },
+      ]
+
+    },
+    errors: [],
+    message: ""
+  });
 };
 
 exports.editProfile = async (req, res) => {
+  console.log(req.body);
   const { values, id } = req.body;
   const {
     full_name,
@@ -510,14 +517,15 @@ exports.editProfile = async (req, res) => {
     issued_by,
     tax_code,
     password,
+    bank,
+    bank_account,
+    bank_name
   } = values;
-  console.log('change gender', req.body.values.gender);
-  console.log('id', id);
 
   const errors = [];
 
   const user = await User.findOne({ _id: id }).exec();
-  console.log('user gender', user.gender);
+  console.log('user', user);
 
   bcrypt.compare(password, user.password, async function (err, result) {
     // result == true
@@ -528,9 +536,7 @@ exports.editProfile = async (req, res) => {
         message: "Mật khẩu không đúng. Vui lòng thử lại"
       });
     } else {
-      const valid_phone = await User.findOne({ $and: [{ phone: phone }, { _id: { $ne: id } }] }).exec();
-      const valid_id_code = await User.findOne({ $and: [{ id_code: phone }, { _id: { $ne: id } }] }).exec();
-      const valid_tax_code = await User.findOne({ $and: [{ tax_code: phone }, { _id: { $ne: id } }] }).exec();
+      const valid_phone = await User.findOne({ $and: [{ phone }, { _id: { $ne: id } }] }).exec();
 
       if (valid_phone) {
         if (JSON.stringify(valid_phone) !== JSON.stringify(user)) {
@@ -540,20 +546,26 @@ exports.editProfile = async (req, res) => {
           });
         }
       }
-      if (valid_id_code) {
-        if (JSON.stringify(valid_id_code) !== JSON.stringify(user)) {
-          errors.push({
-            label: "id_code",
-            err_message: "Số CMND/Hộ chiếu đã được sử dụng",
-          });
+
+      if (user.buy_package === "2") {
+        const valid_id_code = await User.findOne({ $and: [{ id_code }, { _id: { $ne: id } }] }).exec();
+        const valid_tax_code = await User.findOne({ $and: [{ tax_code }, { _id: { $ne: id } }] }).exec();
+
+        if (valid_id_code) {
+          if (JSON.stringify(valid_id_code) !== JSON.stringify(user)) {
+            errors.push({
+              label: "id_code",
+              err_message: "Số CMND đã được sử dụng",
+            });
+          }
         }
-      }
-      if (valid_tax_code) {
-        if (JSON.stringify(valid_tax_code) !== JSON.stringify(user)) {
-          errors.push({
-            label: "tax_code",
-            err_message: "Mã số thuế đã được sử dụng",
-          });
+        if (valid_tax_code) {
+          if (JSON.stringify(valid_tax_code) !== JSON.stringify(user)) {
+            errors.push({
+              label: "tax_code",
+              err_message: "Mã số thuế đã được sử dụng",
+            });
+          }
         }
       }
 
@@ -564,7 +576,7 @@ exports.editProfile = async (req, res) => {
           message: "Có thông tin bị trùng.Vui lòng thử lại!"
         });
       } else {
-        if (user.be_member) {
+        if (user.buy_package === "2") {
           let change = false;
           if (user.full_name !== full_name) {
             await User.findOneAndUpdate(
@@ -638,13 +650,48 @@ exports.editProfile = async (req, res) => {
             ).exec();
             change = true;
           }
+          if (user.bank !== bank) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                bank,
+              }
+            ).exec();
+            change = true;
+          }
+          if (user.bank_account !== bank_account) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                bank_account,
+              }
+            ).exec();
+            change = true;
+          }
+          if (user.bank_name !== bank_name) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                bank_name,
+              }
+            ).exec();
+            change = true;
+          }
           if (change) {
+            
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                changeDataBy: "USER",
+              }
+            ).exec();
+
             res.json({
               status: 200,
               message: "Cập nhật thông tin thành công 🎉",
               errors: [],
               data: {
-                newUser: await User.findOne({ _id: id }).select("full_name phone birthday gender id_code,id_time,issued_by, tax_code,").exec(),
+                newUser: await User.findOne({ _id: id }).exec(),
                 change
               }
             });
@@ -694,12 +741,19 @@ exports.editProfile = async (req, res) => {
             change = true;
           }
           if (change) {
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                changeDataBy: "USER",
+              }
+            ).exec();
+
             res.json({
               status: 200,
               message: "Cập nhật thông tin thành công 🎉",
               errors: [],
               data: {
-                newUser: await User.findOne({ _id: id }).select("full_name phone birthday gender").exec(),
+                newUser: await User.findOne({ _id: id }).exec(),
                 change
               }
             });
@@ -719,10 +773,10 @@ exports.editProfile = async (req, res) => {
 exports.policy = async (req, res) => {
   const { id } = req.params;
 
-  const listPolicy = await Policy.find({}).sort({_id: -1}).exec();
+  const listPolicy = await Policy.find({}).sort({ _id: -1 }).exec();
   const newPolicy = listPolicy[0];
 
-  await User.findOneAndUpdate({_id: id}, {readPolicy: true}).exec();
+  await User.findOneAndUpdate({ _id: id }, { readPolicy: true }).exec();
 
   res.json({
     status: 200,

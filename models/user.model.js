@@ -136,6 +136,10 @@ const userSchema = new mongoose.Schema(
     readPolicy: {
       type: Boolean,
       default: false
+    },
+    changeDataBy: {
+      type: String,
+      default: "Not change"
     }
   }
 );

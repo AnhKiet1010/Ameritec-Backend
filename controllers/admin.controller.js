@@ -6,6 +6,8 @@ const { PROVINCES } = require("../constants/province");
 const jwt = require("jsonwebtoken");
 const Policy = require("../models/policy.model");
 const bcrypt = require("bcrypt");
+const mongoose = require('mongoose');
+
 
 const saltRounds = 10;
 const updateParent = async (id, buy_package) => {
@@ -116,7 +118,7 @@ const countTotalChildMemberForLevel = async (
       count++;
     }
   }
-  
+
   if (countLevel === level) {
     return count;
   } else {
@@ -297,6 +299,7 @@ exports.helperInsert = async (req, res,) => {
     errors: ["hi"],
   });
 };
+
 exports.helperInsertCalLevel = async (req, res,) => {
   var list = await User.find({ id_ameritecjsc: { $ne: null } }).exec();
   for (const element of list) {
@@ -315,11 +318,11 @@ exports.helperInsertCalLevel = async (req, res,) => {
     else {
       element.be_member = false;
     }
-    await User.countDocuments({ parentId: element._id, buy_package: "1" }, function (err, c) {
+    await User.countDocuments({ parentId: element._id, buy_package: "2" }, function (err, c) {
       amount += c * 160;
       point += c * 1;
     });
-    await User.countDocuments({ parentId: element._id, buy_package: "2" }, function (err, c) {
+    await User.countDocuments({ parentId: element._id, buy_package: "1" }, function (err, c) {
       amount += c * 40;
       point += c * 0.25;
     });
@@ -336,6 +339,7 @@ exports.helperInsertCalLevel = async (req, res,) => {
     errors: ["hi"],
   });
 };
+
 exports.policy = async (req, res) => {
 
   const listPolicy = await Policy.find({}).sort({ _id: -1 }).exec();
@@ -536,7 +540,8 @@ exports.getUser = async (req, res) => {
   res.json({
     status: 200,
     data: {
-      result: user.be_member ? [
+      user,
+      result: user.buy_package === "2" ? [
         { label: "Họ và tên", value: user.full_name },
         { label: "Email", value: user.email },
         { label: "Số điện thoại", value: user.phone },
@@ -548,13 +553,11 @@ exports.getUser = async (req, res) => {
         { label: "Số tài khoản", value: user.bank_account },
         { label: "Ngân hàng", value: user.bank },
         { label: "Tên tài khoản", value: user.bank_name },
+        { label: "cmndMT", value: user.cmndMT },
+        { label: "cmndMS", value: user.cmndMS },
         { label: "Link giới thiệu nhóm 1", value: `${process.env.CLIENT_URL}/referral/${user._id}/1` },
         { label: "Link giới thiệu nhóm 2", value: `${process.env.CLIENT_URL}/referral/${user._id}/2` },
         { label: "Link giới thiệu nhóm 3", value: `${process.env.CLIENT_URL}/referral/${user._id}/3` }
-
-
-
-
       ] : [
         { label: "Họ và tên", value: user.full_name },
         { label: "Email", value: user.email },
@@ -569,6 +572,253 @@ exports.getUser = async (req, res) => {
   });
 
 }
+
+exports.editUser = async (req, res) => {
+  console.log(req.body);
+  const { values } = req.body;
+  const {
+    full_name,
+    phone,
+    birthday,
+    gender,
+    id_code,
+    id_time,
+    issued_by,
+    tax_code,
+    bank,
+    bank_account,
+    bank_name,
+    id
+  } = values;
+
+  const errors = [];
+
+  const user = await User.findOne({ _id: mongoose.Types.ObjectId(id) }).exec();
+  console.log('user', user);
+
+  const valid_phone = await User.findOne({ $and: [{ phone }, { _id: { $ne: id } }] }).exec();
+
+  if (valid_phone) {
+    if (JSON.stringify(valid_phone) !== JSON.stringify(user)) {
+      errors.push({
+        label: "phone",
+        err_message: "Số điện thoại đã được sử dụng.Vui lòng chọn số khác",
+      });
+    }
+  }
+
+  if (user.buy_package === "2") {
+    const valid_id_code = await User.findOne({ $and: [{ id_code }, { _id: { $ne: id } }] }).exec();
+    const valid_tax_code = await User.findOne({ $and: [{ tax_code }, { _id: { $ne: id } }] }).exec();
+
+    if (valid_id_code) {
+      if (JSON.stringify(valid_id_code) !== JSON.stringify(user)) {
+        errors.push({
+          label: "id_code",
+          err_message: "Số CMND đã được sử dụng",
+        });
+      }
+    }
+    if (valid_tax_code) {
+      if (JSON.stringify(valid_tax_code) !== JSON.stringify(user)) {
+        errors.push({
+          label: "tax_code",
+          err_message: "Mã số thuế đã được sử dụng",
+        });
+      }
+    }
+  }
+
+  if (errors.length > 0) {
+    res.json({
+      status: 400,
+      errors,
+      message: "Có thông tin bị trùng.Vui lòng thử lại!"
+    });
+  } else {
+    if (user.buy_package === "2") {
+      let change = false;
+      if (user.full_name !== full_name) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            full_name,
+          }
+        ).exec();
+        change = true;
+      }
+      if (user.phone !== phone) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            phone,
+          }
+        ).exec();
+        change = true;
+      }
+      if (user.birthday !== birthday) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            birthday,
+          }
+        ).exec();
+        change = true;
+      }
+      if (user.gender !== gender) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            gender: gender,
+          }
+        ).exec();
+        change = true;
+      }
+      if (user.id_code !== id_code) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            id_code,
+          }
+        ).exec();
+        change = true;
+      }
+      if (user.id_time !== id_time) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            id_time,
+          }
+        ).exec();
+        change = true;
+      }
+      if (user.issued_by !== issued_by) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            issued_by,
+          }
+        ).exec();
+        change = true;
+      }
+      if (user.tax_code !== tax_code) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            tax_code,
+          }
+        ).exec();
+        change = true;
+      }
+      if (user.bank !== bank) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            bank,
+          }
+        ).exec();
+        change = true;
+      }
+      if (user.bank_account !== bank_account) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            bank_account,
+          }
+        ).exec();
+        change = true;
+      }
+      if (user.bank_name !== bank_name) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            bank_name,
+          }
+        ).exec();
+        change = true;
+      }
+      if (change) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            changeDataBy: "ADMIN",
+          }
+        ).exec();
+
+        res.json({
+          status: 200,
+          message: "Cập nhật thông tin thành công 🎉",
+          errors: [],
+          data: {
+            newUser: await User.findOne({ _id: id }).exec(),
+            change
+          }
+        });
+      } else {
+        res.json({
+          status: 200,
+          message: "Thông tin không thay đổi",
+          errors: []
+        });
+      }
+    } else {
+      let change = false;
+      if (user.full_name !== full_name) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            full_name,
+          }
+        ).exec();
+        change = true;
+      }
+      if (user.phone !== phone) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            phone,
+          }
+        ).exec();
+        change = true;
+      }
+      if (user.birthday !== birthday) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            birthday,
+          }
+        ).exec();
+        change = true;
+      }
+      if (user.gender !== gender) {
+        await User.findOneAndUpdate(
+          { _id: id },
+          {
+            gender: gender,
+          }
+        ).exec();
+        change = true;
+      }
+      if (change) {
+        res.json({
+          status: 200,
+          message: "Cập nhật thông tin thành công 🎉",
+          errors: [],
+          data: {
+            newUser: await User.findOne({ _id: id }).exec(),
+            change
+          }
+        });
+      } else {
+        res.json({
+          status: 200,
+          message: "Thông tin không thay đổi",
+          errors: []
+        });
+      }
+    }
+  }
+};
 
 exports.getStorage = async (req, res) => {
   const { filterCode } = req.query;

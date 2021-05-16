@@ -302,6 +302,7 @@ exports.registerController = async (req, res) => {
     id_time,
   } = req.body;
 
+  console.log("body", req.body);
   var cmndMT = "";
   var cmndMS = "";
 
@@ -330,7 +331,7 @@ exports.registerController = async (req, res) => {
       message: "Có lỗi xảy ra!",
     });
   } else {
-    if (be_member !== 'false') {
+    if (buy_package === "2") {
 
       const files = req.files;
 
@@ -791,7 +792,7 @@ exports.loginController = (req, res) => {
               role: user.role,
               phone: user.phone,
               email: user.email,
-              be_member: user.be_member
+              buy_package: user.buy_package
             },
           },
           message: "Đăng nhập thành công",
@@ -799,87 +800,6 @@ exports.loginController = (req, res) => {
         });
       }
     });
-  });
-};
-
-exports.userInfoController = (req, res) => {
-  const { values } = req.body;
-
-  const {
-    token,
-    birthday,
-    gender,
-    accept_confirm,
-    id_code,
-    id_time,
-    issued_by,
-    bank,
-    bank_account,
-    bank_name,
-    iden_type,
-    tax_code,
-    // ID_front_side,
-    // ID_back_side,
-    complete_profile_level,
-  } = values;
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) {
-      console.log("Add info error");
-      res.json({
-        success: false,
-        errors: [
-          {
-            label: "add_info_error",
-            err_message: "Phiên đăng nhập hết hạn, Vui lòng đăng nhập lại",
-          },
-        ],
-      });
-    } else {
-      const { _id } = jwt.decode(token);
-
-      User.findOneAndUpdate(
-        { _id },
-        {
-          birthday,
-          gender,
-          accept_confirm,
-          id_code,
-          id_time,
-          issued_by,
-          bank,
-          bank_account,
-          bank_name,
-          iden_type,
-          tax_code,
-          complete_profile_level,
-        },
-        async (err) => {
-          if (err) {
-            return res.json({
-              success: false,
-              errors: [
-                {
-                  label: "add-info-err",
-                  err_message:
-                    "Bổ sung dữ liệu không thành công.Vui lòng thử lại.",
-                },
-              ],
-            });
-          } else {
-            await Commission.updateMany(
-              { receive_mem: _id },
-              { qualified: true }
-            ).exec();
-
-            res.json({
-              success: true,
-              message: "🎉 Bổ sung thông tin thành công, Xin mời đăng nhập lại",
-            });
-          }
-        }
-      );
-    }
   });
 };
 
