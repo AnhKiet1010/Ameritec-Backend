@@ -276,7 +276,7 @@ exports.helperInsert = async (req, res,) => {
     element.role = "normal";
     element.created_time = new Date(element.user_registered);
     element.buy_package = listdoanhnghiep.includes(element.user_login) ? "1" : "2";
-    element.be_member = true;
+    //element.be_member = true;
     element.full_name = element.display_name;
     element.expired = false;
     const father = listSugarDaddies.filter(({ user_id }) => user_id == element.id_ameritecjsc);
@@ -308,21 +308,12 @@ exports.helperInsert = async (req, res,) => {
 exports.helperInsertCalLevel = async (req, res,) => {
   var list = await User.find({ id_ameritecjsc: { $ne: null } }).exec();
   for (const element of list) {
-    let amount = 0;
-    let point = 0;
-    let level = 0;
-    if (element.parentId != "AMERITEC2021") {
-      updateParent(element.parentId, element.buy_package);
-    }
-    if (element.buy_package == "2") {
-      element.be_member = true;
-      await User.countDocuments({ parentId: element._id }, function (err, c) {
-        level += c * 160;
-      });
-    }
-    else {
-      element.be_member = false;
-    }
+    var amount = 0;
+    var point = 0;
+
+    // if (element.parentId != "AMERITEC2021") {
+    //   updateParent(element.parentId, element.buy_package);
+    // }
     await User.countDocuments({ parentId: element._id, buy_package: "1" }, function (err, c) {
       amount += c * 160;
       point += c * 1;
@@ -331,8 +322,18 @@ exports.helperInsertCalLevel = async (req, res,) => {
       amount += c * 40;
       point += c * 0.25;
     });
+    if (element.id_ameritecjsc == "71") {
+      console.log(element.point);
+      console.log(element.amount);
+    }
     element.point = point;
     element.amount = amount;
+    if (element.id_ameritecjsc == "71") {
+      console.log(element.point);
+      console.log(element.amount);
+      console.log(point);
+      console.log(amount);
+    }
     await element.save(function (err) {
       if (err) {
         console.log("fail to update user: " + element.id_ameritecjsc);
