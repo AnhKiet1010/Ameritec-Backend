@@ -1,4 +1,4 @@
-export const BANK =  [
+exports.BANK =  [
     { value: "AGB",label: 'Agribank'},
     { value: "BIDV",label:  'BIDV' },
     { value: "VCB",label:  'Vietcombank' },

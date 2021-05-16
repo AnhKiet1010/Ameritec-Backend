@@ -4,7 +4,6 @@ require("dotenv").config({
 
 const express = require("express");
 const morgan = require("morgan");
-const bodyParser = require("body-parser");
 const cors = require("cors");
 
 const CronJob = require("cron").CronJob;
@@ -78,7 +77,7 @@ connectDB();
 
 const { deletePendingTransactions, setExpiredUser } = require("./config/cron");
 
-const cron1 = new CronJob("5 * * * *", () => {
+const cron1 = new CronJob("*/15 * * * *", () => {
   console.log("Running delete pending transaction");
   deletePendingTransactions();
 });

@@ -18,17 +18,15 @@ const {
     policy,
     helperInsert,
     helperInsertCalLevel,
-    getUserExpired
+    editUser,
 } = require('../controllers/admin.controller');
-
-//const { helperInsert } = require('../controllers/inser.data');
 
 router.post('/helperInsert', helperInsert);
 router.post('/helperInsertCalLevel', helperInsertCalLevel);
-router.get('/getUserExpired', getUserExpired);
 router.get('/dashboard', getDashboard);
 router.get('/storage', getStorage);
 router.get('/user/:id', getUser);
+router.post('/user/edit/:id', editUser);
 router.get('/getPendingList', getPendingList);
 router.get('/tree/:id/:search', getTree);
 router.post('/login', postLogin);

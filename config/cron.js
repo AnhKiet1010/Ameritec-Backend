@@ -11,7 +11,7 @@ exports.deletePendingTransactions = async () => {
     const date = new Date();
     var kq = [];
     for (let i = 0; i < listTrans.length; i++) {
-        if (new Date(listTrans[i].created_time) > new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes() - 5)) {
+        if (new Date(listTrans[i].created_time) > new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes() - 15)) {
             kq.push(listTrans[i]._id);
         }
     }
