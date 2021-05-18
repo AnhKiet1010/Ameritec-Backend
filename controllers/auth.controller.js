@@ -143,7 +143,7 @@ const getActiveLink = async (email, full_name, phone, buy_package) => {
         });
     }
   }
-  
+
   return links;
 };
 
@@ -243,38 +243,46 @@ const checkUpLevel = async (id, buy_package) => {
 
 exports.checkLinkController = async (req, res) => {
   const { invite_code, donate_sales_id, group } = req.body;
-
-  if (
-    invite_code.split("").length !== 24 ||
-    donate_sales_id.split("").length !== 24
-  ) {
+  console.log(invite_code);
+  if (invite_code === process.env.INVITE_CODE) {
     res.json({
-      status: 400,
-      message: "Link giới thiệu không đúng",
-      errors: [],
-    });
-  } else if (parseInt(group) <= 0 || parseInt(group) > 3) {
-    res.json({
-      status: 400,
-      message: "Link giới thiệu không đúng group",
+      status: 200,
+      message: "Link giới thiệu đúng",
       errors: [],
     });
   } else {
-    const invalid_invite_code = await User.findById(invite_code).exec();
-    const invalid_donate_sales_id = await User.findById(donate_sales_id).exec();
-
-    if (!invalid_invite_code || !invalid_donate_sales_id) {
+    if (
+      invite_code.split("").length !== 24 ||
+      donate_sales_id.split("").length !== 24
+    ) {
       res.json({
         status: 400,
         message: "Link giới thiệu không đúng",
         errors: [],
       });
-    } else {
+    } else if (parseInt(group) <= 0 || parseInt(group) > 3) {
       res.json({
-        status: 200,
-        message: "Link giới thiệu đúng",
+        status: 400,
+        message: "Link giới thiệu không đúng group",
         errors: [],
       });
+    } else {
+      const invalid_invite_code = await User.findById(invite_code).exec();
+      const invalid_donate_sales_id = await User.findById(donate_sales_id).exec();
+
+      if (!invalid_invite_code || !invalid_donate_sales_id) {
+        res.json({
+          status: 400,
+          message: "Link giới thiệu không đúng",
+          errors: [],
+        });
+      } else {
+        res.json({
+          status: 200,
+          message: "Link giới thiệu đúng",
+          errors: [],
+        });
+      }
     }
   }
 };
@@ -286,7 +294,6 @@ exports.registerController = async (req, res) => {
     password,
     phone,
     id_code,
-    be_member,
     issued_by,
     bank,
     bank_account,
@@ -432,7 +439,6 @@ exports.registerController = async (req, res) => {
         password,
         phone,
         id_code,
-        be_member,
         issued_by,
         bank,
         bank_account,
@@ -504,7 +510,6 @@ async function processDataActivation(data, token) {
     password,
     phone,
     id_code,
-    be_member,
     issued_by,
     bank_account,
     bank,
@@ -527,15 +532,6 @@ async function processDataActivation(data, token) {
   bcrypt.genSalt(saltRounds, function (err, salt) {
     bcrypt.hash(password, salt, async function (err, hash) {
 
-      // --------------- FIND DONATE USER -------------------
-      const userOfDonateSales = await User.findOne({
-        _id: donate_sales_id,
-      }).exec();
-
-      const userOfInvite = await User.findOne({
-        _id: invite_code,
-      }).exec();
-
       // --------------- CREATE AVATAR -------------------
       const listCharacterOfName = full_name.split(" ");
       const avatarKey = `${listCharacterOfName[listCharacterOfName.length - 2]}+${listCharacterOfName[listCharacterOfName.length - 1]}`;
@@ -554,7 +550,6 @@ async function processDataActivation(data, token) {
         parentId: donate_sales_id,
         created_time: new Date(),
         id_code,
-        be_member,
         issued_by,
         bank,
         bank_account,
@@ -569,49 +564,59 @@ async function processDataActivation(data, token) {
         expired: false
       });
 
-      user.save(function (err) {
+      user.save(async function (err) {
         if (err) {
           unSavedErr.push({ field: "user" });
         } else {
-          if (groupNumber === "1") {
-            Tree.findOneAndUpdate(
-              {
-                parent: userOfDonateSales._id,
-              },
-              {
-                $push: { group1: user._id },
-              },
-              async (err) => {
-                if (err) {
-                  throw err;
+
+          // --------------- FIND DONATE USER -------------------
+          if (invite_code !== process.env.INVITE_CODE) {
+            const userOfDonateSales = await User.findOne({
+              _id: donate_sales_id,
+            }).exec();
+
+            if (groupNumber === "1") {
+
+
+              Tree.findOneAndUpdate(
+                {
+                  parent: userOfDonateSales._id,
+                },
+                {
+                  $push: { group1: user._id },
+                },
+                async (err) => {
+                  if (err) {
+                    throw err;
+                  }
                 }
-              }
-            );
-          } else if (groupNumber === "2") {
-            Tree.findOneAndUpdate(
-              { parent: userOfDonateSales._id },
-              {
-                $push: { group2: user._id },
-              },
-              async function (err) {
-                if (err) {
-                  throw err;
+              );
+            } else if (groupNumber === "2") {
+              Tree.findOneAndUpdate(
+                { parent: userOfDonateSales._id },
+                {
+                  $push: { group2: user._id },
+                },
+                async function (err) {
+                  if (err) {
+                    throw err;
+                  }
+                });
+            } else if (groupNumber === "3") {
+              Tree.findOneAndUpdate(
+                { parent: userOfDonateSales._id },
+                {
+                  $push: { group3: user._id },
+                },
+                async function (err) {
+                  if (err) {
+                    throw err;
+                  }
                 }
-              });
-          } else if (groupNumber === "3") {
-            Tree.findOneAndUpdate(
-              { parent: userOfDonateSales._id },
-              {
-                $push: { group3: user._id },
-              },
-              async function (err) {
-                if (err) {
-                  throw err;
-                }
-              }
-            );
-          } else {
-            console.log("thêm id vào cha thất bại");
+              );
+            } else {
+              console.log("thêm id vào cha thất bại");
+            }
           }
         }
       });
@@ -637,26 +642,36 @@ async function processDataActivation(data, token) {
 
 
       // --------------- UPDATE AMOUNT OF PARENT -------------------
-      await User.findOneAndUpdate(
-        { _id: invite_code },
-        {
-          amount:
-            buy_package === "1"
-              ? userOfInvite.amount + 40
-              : userOfInvite.amount + 160,
-        }
-      ).exec();
+      if (invite_code !== process.env.INVITE_CODE) {
+
+        const userOfInvite = await User.findOne({
+          _id: invite_code,
+        }).exec();
+
+        await User.findOneAndUpdate(
+          { _id: invite_code },
+          {
+            amount:
+              buy_package === "1"
+                ? userOfInvite.amount + 40
+                : userOfInvite.amount + 160,
+          }
+        ).exec();
+      }
 
       // --------------- UPDATE LEVEL PARENT -------------------
-
-      updateParent(invite_code, buy_package);
+      if (invite_code !== process.env.INVITE_CODE) {
+        updateParent(invite_code, buy_package);
+      }
 
       // --------------- SAVE COMMISSTIONS -------------------
-      returnCommission(
-        invite_code,
-        buy_package,
-        full_name
-      );
+      if (invite_code !== process.env.INVITE_CODE) {
+        returnCommission(
+          invite_code,
+          buy_package,
+          full_name
+        );
+      }
 
       // --------------- GET APP ACTIVATIONS LINKS -------------------
       const links = await getActiveLink(
@@ -680,12 +695,16 @@ async function processDataActivation(data, token) {
       );
 
       // --------------- SEND THANKS MAIL -------------------
-      thankMail(
-        userOfInvite.full_name,
-        userOfInvite.email,
-        full_name
-      );
-
+      if (invite_code !== process.env.INVITE_CODE) {
+        const userOfInvite = await User.findOne({
+          _id: invite_code,
+        }).exec();
+        thankMail(
+          userOfInvite.full_name,
+          userOfInvite.email,
+          full_name
+        );
+      }
       // --------------- RESET TOKEN TO EMPTY -------------------
       await Transaction.findOneAndUpdate(
         { token },
@@ -956,8 +975,8 @@ exports.forgotPasswordController = async (req, res) => {
       console.log("forgot pass sended!!!! to", email);
 
       await user.updateOne({
-          resetPasswordLink: token,
-        }).exec();
+        resetPasswordLink: token,
+      }).exec();
 
       return res.json({
         status: 200,
@@ -1039,8 +1058,7 @@ const returnCommission = async (receive_mem, buy_package, join_mem) => {
     created_time: new Date(),
     payment_method: "",
     active_admin: false,
-    status: "pending",
-    qualified: bankAccountOfParent.be_member,
+    status: "pending"
   });
 
   await commission.save(function (err) {

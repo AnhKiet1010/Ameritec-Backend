@@ -6,7 +6,6 @@ const { checkAdmin, checkAdminPost } = require('../middlewares');
 const {
     getDashboard,
     getPendingList,
-    postLogin,
     getTree,
     editTree,
     changeTree,
@@ -28,8 +27,7 @@ router.get('/storage', getStorage);
 router.get('/user/:id', getUser);
 router.post('/user/edit/:id', editUser);
 router.get('/getPendingList', getPendingList);
-router.get('/tree/:id/:search', getTree);
-router.post('/login', postLogin);
+router.get('/tree/:id/:search/:page', getTree);
 router.post('/update-admin/:id', updateAdmin);
 router.post('/edit-tree', editTree);
 router.post('/change-tree', changeTree);

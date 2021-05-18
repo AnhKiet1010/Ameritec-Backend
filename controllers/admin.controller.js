@@ -10,6 +10,7 @@ const mongoose = require('mongoose');
 
 
 const saltRounds = 10;
+
 const updateParent = async (id, buy_package) => {
   const parent = await User.findOne({ _id: id }).exec();
   const checkUp = await checkUpLevel(id, buy_package);
@@ -305,17 +306,13 @@ exports.helperInsertCalLevel = async (req, res,) => {
     let amount = 0;
     let point = 0;
     let level = 0;
-    if (element.parentId != "AMERITEC2021") {
-      updateParent(element.parentId, element.buy_package);
-    }
-    if (element.buy_package == "2") {
-      element.be_member = true;
+    // if (element.parentId != "AMERITEC2021") {
+    //   updateParent(element.parentId, element.buy_package);
+    // }
+    if (element.buy_package === "2") {
       await User.countDocuments({ parentId: element._id }, function (err, c) {
         level += c * 160;
       });
-    }
-    else {
-      element.be_member = false;
     }
     await User.countDocuments({ parentId: element._id, buy_package: "2" }, function (err, c) {
       amount += c * 160;
@@ -375,55 +372,6 @@ const countTotalChildMember = async (subTreeIdList) => {
     }
   }
   return count;
-};
-
-exports.postLogin = async (req, res) => {
-  const { acc, password } = req.body;
-
-  Admin.findOne({ email: acc }).exec((err, user) => {
-    if (err || !user) {
-      return res.json({
-        success: false,
-        errors: [
-          {
-            label: "acc",
-            err_message: "Email không hợp lệ",
-          },
-        ],
-      });
-    }
-    if (password !== user.password) {
-      return res.json({
-        success: false,
-        errors: [
-          {
-            label: "password",
-            err_message: "Mật khẩu không đúng. Vui lòng thử lại",
-          },
-        ],
-      });
-    }
-    // generate a token and send to client
-    const token = jwt.sign(
-      {
-        _id: user._id,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "1d",
-      }
-    );
-
-    return res.json({
-      success: true,
-      token,
-      user: {
-        avatar: "https://pickaface.net/gallery/avatar/jquan0755a199bfcb71d.png",
-        full_name: user.full_name,
-        role: user.role,
-      },
-    });
-  });
 };
 
 const countTotalPersonPackage = async () => {
@@ -512,17 +460,6 @@ exports.getDashboard = async (req, res) => {
     errors: [],
     message: ""
   });
-  //} catch (error) {
-  //   res.json({
-  //     status: 500,
-  //     data: {
-
-  //     },
-  //     errors: "Something wrong!!!",
-  //     message: ""
-  //   });
-  // }
-
 };
 
 exports.getUser = async (req, res) => {
@@ -1016,17 +953,35 @@ const getTreeOfOneAgency = async (searchId) => {
 };
 
 exports.getTree = async (req, res) => {
-  const { id, search } = req.params;
+  const { id, search, page } = req.params;
+
+  const perPage = 10;
+  var totalAgency = 0;
+
   var listAgency = [];
   const invite_code = process.env.INVITE_CODE;
 
   if (id === search) {
-    listAgency = [... (await User.find({ parentId: invite_code }).exec())];
+    totalAgency = await User.count({ parentId: invite_code }).exec();
+    listAgency = [... (await User.find({ parentId: invite_code }).limit(perPage)
+      .skip(perPage * page)
+      .sort({
+        _id: -1
+      }).exec())];
   } else {
-    listAgency = [... (await User.find({ _id: search }).exec())];
+    totalAgency = await User.count({ parentId: search }).exec();
+    listAgency = [... (await User.find({ _id: search }).limit(perPage)
+      .skip(perPage * page)
+      .sort({
+        _id: -1
+      }).exec())];
   }
 
-  const listAllUser = await User.find({ role: { $ne: 'admin' } }).select("full_name").exec();
+  const listAllUser = await User.find({ $and: [{ role: { $ne: 'admin' } }, { parentId: process.env.INVITE_CODE }] }).select("full_name").limit(perPage)
+    .skip(perPage * page)
+    .sort({
+      _id: -1
+    }).exec();
 
   const listChildName = listAllUser.map((child) => {
     return { value: child._id, label: child.full_name };
@@ -1046,7 +1001,11 @@ exports.getTree = async (req, res) => {
   res.json({
     status: 200,
     data: {
-      listChildName, group: root
+      listChildName,
+      group: root,
+      currentPage: page,
+      perPage,
+      totalAgency
     },
     errors: [],
     message: ""
@@ -1091,7 +1050,6 @@ exports.createAdmin = async (req, res) => {
             avatar: `https://ui-avatars.com/api/?name=${avatarKey}&background=random`,
             role: "admin",
             parentId: "AMERITEC",
-            be_member: true
           });
 
           user.save((err) => {

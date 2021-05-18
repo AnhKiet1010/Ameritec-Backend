@@ -330,7 +330,6 @@ exports.upgrade = async (req, res) => {
         bank_name,
         tax_code,
         buy_package: "2",
-        be_member: "true",
         cmndMT,
         cmndMS
       }).exec();
@@ -360,7 +359,6 @@ exports.upgrade = async (req, res) => {
         bank_name,
         tax_code,
         buy_package: "2",
-        be_member: "true",
         cmndMT,
         cmndMS
       }).exec();

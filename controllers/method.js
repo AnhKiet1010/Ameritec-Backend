@@ -256,7 +256,9 @@ const getData = async (group, parentIn) => {
         let listGroupOfChild = await getListChildId(child._id);
         parent.countChild = await countTotalChildMember(listGroup);
         child.countChild = await countTotalChildMember(listGroupOfChild);
-        await getData(listGroupOfChild, child);
+        console.log("kq", kq);
+        let kq2 = await getData(listGroupOfChild, child);
+        console.log('result', kq2);
       }
       if (parentIn) {
         if (parent.groupNumber === "1") {
@@ -1139,4 +1141,19 @@ exports.randomString = (length = 6) => {
       charactersLength)));
   }
   return result.join('');
+}
+
+const getTreeChild = async (idcha) => {
+  var userCha = await User.findOne({ _id: idcha })
+    .exec();
+  var listCon = await getListChildId2(idcha);
+  var child = [];
+  for (const element of listCon) {
+    await child.push(await getTreeChild(element));
+  }
+  var Cha = {
+    title: userCha.full_name,
+    children: child
+  };
+  return Cha;
 }
