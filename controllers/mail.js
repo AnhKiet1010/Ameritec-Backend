@@ -17,7 +17,6 @@ exports.Mail = async (email, html, subject) => {
   // });
 
   let transporter = nodemailer.createTransport({
-    pool: true,
     host: "sv3.tmail.vn",
     port: 587,
     secure: false, // use TLS

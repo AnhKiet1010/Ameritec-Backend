@@ -1,4 +1,5 @@
 exports.BANK =  [
+    {value: "", label: "Không có"},
     { value: "AGB",label: 'Agribank'},
     { value: "BIDV",label:  'BIDV' },
     { value: "VCB",label:  'Vietcombank' },

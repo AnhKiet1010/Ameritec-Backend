@@ -91,16 +91,61 @@ exports.dashboard = async (req, res) => {
   });
 };
 
-exports.tree = async (req, res) => {
-  const { id, search } = req.params;
-
-  const searchUser = await User.findOne({ _id: search }).exec();
-
-  const objBranch = await Tree.findOne({ parent: search })
+const getListChildId = async (id) => {
+  const objBranch = await Tree.findOne({ parent: id })
     .select("group1 group2 group3")
     .exec();
+
   const { group1, group2, group3 } = objBranch;
-  const arrObjectOfSearchUsers = [...group1, ...group2, ...group3];
+
+  return [...group1, ...group2, ...group3];
+};
+
+const getTreeChild = async (idcha) => {
+  var userCha = await User.findOne({ _id: idcha })
+    .exec();
+  var listCon = await Tree.findOne({ parent: idcha })
+    .select("group1 group2 group3")
+    .exec();
+  var child1 = [];
+  var child2 = [];
+  var child3 = [];
+  if (listCon) {
+    for (const element of listCon.group1) {
+      await child1.push(await getTreeChild(element));
+    }
+    for (const element of listCon.group2) {
+      await child2.push(await getTreeChild(element));
+    }
+    for (const element of listCon.group3) {
+      await child3.push(await getTreeChild(element));
+    }
+  }
+  var Cha = {
+    _id: userCha._id,
+    full_name: userCha.full_name,
+    countChild: await countTotalChildMember(await getListChildId(idcha)),
+    level: userCha.level,
+    buy_package: userCha.buy_package,
+    avatar: userCha.avatar,
+    child1: {
+      arr: child1,
+      countChild: await countTotalChildMember(child1)
+    },
+    child2: {
+      arr: child2,
+      countChild: await countTotalChildMember(child2)
+    },
+    child3: {
+      arr: child3,
+      countChild: await countTotalChildMember(child3)
+    },
+  };
+  return Cha;
+}
+
+exports.tree = async (req, res) => {
+  const { id, search } = req.params;
 
   const objBranchChild = await Tree.findOne({ parent: id })
     .select("group1 group2 group3")
@@ -114,35 +159,14 @@ exports.tree = async (req, res) => {
     []
   );
 
+  const result = await getTreeChild(search);
+  const root = [];
+  root.push(result);
+
   const listChildName = listChildNameBefore.map((child) => {
     return { value: child._id, label: child.full_name };
   });
 
-  const result1 = await getData(group1);
-  const result2 = await getData(group2);
-  const result3 = await getData(group3);
-
-  const root = [];
-  root.push({
-    _id: searchUser._id,
-    avatar: searchUser.avatar,
-    full_name: searchUser.full_name,
-    countChild: await countTotalChildMember(arrObjectOfSearchUsers),
-    level: searchUser.level,
-    buy_package: searchUser.buy_package,
-    child1: {
-      arr: [...result1],
-      countChild: await countTotalChildMember(result1),
-    },
-    child2: {
-      arr: [...result2],
-      countChild: await countTotalChildMember(result2),
-    },
-    child3: {
-      arr: [...result3],
-      countChild: await countTotalChildMember(result3),
-    },
-  });
   res.json({
     status: 200,
     data: {
@@ -479,9 +503,9 @@ exports.profile = async (req, res) => {
         { label: "Email", value: user.email },
         { label: "Số điện thoại", value: user.phone },
         { label: "Giới tính", value: user.gender === 2 ? "Nam" : user.gender === 3 ? "Nữ" : "N/A" },
-        { label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0] },
+        { label: "Ngày tháng năm sinh", value: user.birthday ? new Date(user.birthday).toLocaleDateString("vi").split(",")[0]  : ""},
         { label: "Số chứng minh thư", value: user.id_code },
-        { label: "Ngày cấp", value: new Date(user.id_time).toLocaleDateString("vi").split(",")[0] },
+        { label: "Ngày cấp", value: user.id_code ? new Date(user.id_time).toLocaleDateString("vi").split(",")[0] : ""},
         { label: "Nơi cấp", value: PROVINCES.find(pro => pro.value === user.issued_by).label },
         { label: "Số tài khoản", value: user.bank_account },
         { label: "Ngân hàng", value: BANK.find(b => b.value === user.bank).label },

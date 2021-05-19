@@ -150,6 +150,49 @@ const countTotalChildMemberForLevel = async (
   }
 }
 
+const getTreeChild = async (idcha) => {
+  var userCha = await User.findOne({ _id: idcha })
+    .exec();
+  var listCon = await Tree.findOne({ parent: idcha })
+    .select("group1 group2 group3")
+    .exec();
+  var child1 = [];
+  var child2 = [];
+  var child3 = [];
+  if (listCon) {
+    for (const element of listCon.group1) {
+      await child1.push(await getTreeChild(element));
+    }
+    for (const element of listCon.group2) {
+      await child2.push(await getTreeChild(element));
+    }
+    for (const element of listCon.group3) {
+      await child3.push(await getTreeChild(element));
+    }
+  }
+  var Cha = {
+    _id: userCha._id,
+    full_name: userCha.full_name,
+    countChild: await countTotalChildMember(await getListChildId(idcha)),
+    level: userCha.level,
+    buy_package: userCha.buy_package,
+    avatar: userCha.avatar,
+    child1: {
+      arr: child1,
+      countChild: await countTotalChildMember(child1)
+    },
+    child2: {
+      arr: child2,
+      countChild: await countTotalChildMember(child2)
+    },
+    child3: {
+      arr: child3,
+      countChild: await countTotalChildMember(child3)
+    },
+  };
+  return Cha;
+}
+
 exports.helperInsert = async (req, res,) => {
 
   var listSugarDaddies = req.body.listSugarDaddy;
@@ -266,13 +309,30 @@ exports.helperInsert = async (req, res,) => {
     }
 
     //làm mịn data
+    element.full_name = element.display_name;
+    const listCharacterOfName = element.full_name.split(" ");
+    const avatarKey = `${listCharacterOfName[listCharacterOfName.length - 2]}+${listCharacterOfName[listCharacterOfName.length - 1]}`;
     element.password = "$2b$10$3HpEWjLCqQ97bg7cIuPP/OMOyr5kkzQ7zxZTczdXJH2STQPYwiA0m";
-    element.avatar = "https://robohash.org/doloresutqui?size=100x100&set=set1";
+    element.avatar = `https://ui-avatars.com/api/?name=${avatarKey}&background=random`;
     element.role = "normal";
     element.created_time = new Date(element.user_registered);
     element.buy_package = listdoanhnghiep.includes(element.user_login) ? "1" : "2";
-    element.full_name = element.display_name;
-    element.expired = false;
+    element.id_code = "";
+    element.id_time = "";
+    element.issued_by = "";
+    element.bank_account = "";
+    element.bank = "";
+    element.bank_name = "";
+    element.cmndMT = "";
+    element.cmndMS = "";
+
+
+    if (element.email.substring(element.email.length - 2) == "EP") {
+      element.expired = true;
+    }
+    else {
+      element.expired = false;
+    }
     const father = listSugarDaddies.filter(({ user_id }) => user_id == element.id_ameritecjsc);
 
     if (father[0] != null) {
@@ -916,6 +976,7 @@ const getData = async (group, parentIn) => {
 };
 
 const getTreeOfOneAgency = async (searchId) => {
+  const root = [];
   const searchUser = await User.findOne({ _id: searchId }).exec();
 
   const objBranch = await Tree.findOne({ parent: searchId })
@@ -928,7 +989,6 @@ const getTreeOfOneAgency = async (searchId) => {
   const result2 = await getData(group2);
   const result3 = await getData(group3);
 
-  const root = [];
   root.push({
     _id: searchUser._id,
     avatar: searchUser.avatar,
@@ -977,8 +1037,9 @@ exports.getTree = async (req, res) => {
       }).exec())];
   }
 
-  const listAllUser = await User.find({ $and: [{ role: { $ne: 'admin' } }, { parentId: process.env.INVITE_CODE }] }).select("full_name").limit(perPage)
-    .skip(perPage * page)
+  const listAllUser = await User.find({ $and: [{ role: { $ne: 'admin' } }, { parentId: process.env.INVITE_CODE }] }).select("full_name")
+  // .limit(perPage)
+  //   .skip(perPage * page)
     .sort({
       _id: -1
     }).exec();
@@ -990,7 +1051,9 @@ exports.getTree = async (req, res) => {
   const root = [];
 
   for (let agency of listAgency) {
-    const tree = await getTreeOfOneAgency(agency._id);
+    const result = await getTreeChild(agency._id);
+    const tree = [];
+    tree.push(result);
     if (tree.length === 0) {
       root.push([agency]);
     } else {

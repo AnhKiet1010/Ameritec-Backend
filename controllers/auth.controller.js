@@ -754,10 +754,11 @@ exports.activationController = async (req, res) => {
   }
 };
 
-exports.loginController = (req, res) => {
+exports.loginController = async (req, res) => {
   const { acc, password } = req.body;
+  console.log(req.body);
 
-  User.findOne({
+  await User.findOne({
     $or: [{ email: acc }, { phone: acc }],
   }).exec((err, user) => {
     if (err || !user) {
