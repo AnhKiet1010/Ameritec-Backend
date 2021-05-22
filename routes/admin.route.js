@@ -29,7 +29,7 @@ router.post('/user/edit/:id', editUser);
 router.get('/getPendingList', getPendingList);
 router.get('/tree/:id/:search/:page', getTree);
 router.post('/update-admin/:id', updateAdmin);
-router.post('/edit-tree', editTree);
+router.post('/edit-tree',checkAdmin, editTree);
 router.post('/change-tree', changeTree);
 router.post('/create-admin', createAdmin);
 router.post('/create-policy', createPolicy);

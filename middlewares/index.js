@@ -2,18 +2,20 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user.model');
 
 exports.checkAdmin = async (req, res, next) => {
-  const { id } = req.params;
-  const user = await User.findOne({ _id: id }).select('role').exec();
-  if (user.role === 'admin') {
-    next();
-  } else {
-    console.log("Unauthorized!!!");
-    res.json({
-      status: 400,
-      message: "Bạn không được quyền thao tác này",
-      errors: []
-    });
-  }
+  console.log('headers', req.headers);
+  next();
+  // const { id } = req.params;
+  // const user = await User.findOne({ _id: id }).select('role').exec();
+  // if (user.role === 'admin') {
+  //   next();
+  // } else {
+  //   console.log("Unauthorized!!!");
+  //   res.json({
+  //     status: 400,
+  //     message: "Bạn không được quyền thao tác này",
+  //     errors: []
+  //   });
+  // }
 }
 
 exports.checkAdminPost = (req, res, next) => {

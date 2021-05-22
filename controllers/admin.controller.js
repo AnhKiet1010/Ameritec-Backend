@@ -366,9 +366,9 @@ exports.helperInsertCalLevel = async (req, res,) => {
     let amount = 0;
     let point = 0;
     let level = 0;
-    // if (element.parentId != "AMERITEC2021") {
-    //   updateParent(element.parentId, element.buy_package);
-    // }
+    if (element.parentId != "AMERITEC2021") {
+      updateParent(element.parentId, element.buy_package);
+    }
     if (element.buy_package === "2") {
       await User.countDocuments({ parentId: element._id }, function (err, c) {
         level += c * 160;
@@ -975,42 +975,6 @@ const getData = async (group, parentIn) => {
   return kq;
 };
 
-const getTreeOfOneAgency = async (searchId) => {
-  const root = [];
-  const searchUser = await User.findOne({ _id: searchId }).exec();
-
-  const objBranch = await Tree.findOne({ parent: searchId })
-    .select("group1 group2 group3")
-    .exec();
-  const { group1, group2, group3 } = objBranch;
-  const arrObjectOfSearchUsers = [...group1, ...group2, ...group3];
-
-  const result1 = await getData(group1);
-  const result2 = await getData(group2);
-  const result3 = await getData(group3);
-
-  root.push({
-    _id: searchUser._id,
-    avatar: searchUser.avatar,
-    full_name: searchUser.full_name,
-    buy_package: searchUser.buy_package,
-    countChild: await countTotalChildMember(arrObjectOfSearchUsers),
-    level: searchUser.level,
-    child1: {
-      arr: [...result1],
-      countChild: await countTotalChildMember(result1),
-    },
-    child2: {
-      arr: [...result2],
-      countChild: await countTotalChildMember(result2),
-    },
-    child3: {
-      arr: [...result3],
-      countChild: await countTotalChildMember(result3),
-    },
-  });
-  return root;
-};
 
 exports.getTree = async (req, res) => {
   const { id, search, page } = req.params;
@@ -1022,14 +986,14 @@ exports.getTree = async (req, res) => {
   const invite_code = process.env.INVITE_CODE;
 
   if (id === search) {
-    totalAgency = await User.count({ parentId: invite_code }).exec();
+    totalAgency = await User.countDocuments({ parentId: invite_code }).exec();
     listAgency = [... (await User.find({ parentId: invite_code }).limit(perPage)
       .skip(perPage * page)
       .sort({
         _id: -1
       }).exec())];
   } else {
-    totalAgency = await User.count({ parentId: search }).exec();
+    totalAgency = await User.countDocuments({ parentId: search }).exec();
     listAgency = [... (await User.find({ _id: search }).limit(perPage)
       .skip(perPage * page)
       .sort({

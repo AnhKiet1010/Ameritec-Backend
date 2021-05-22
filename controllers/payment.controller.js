@@ -307,7 +307,6 @@ async function processDataActivation(data, token) {
     password,
     phone,
     id_code,
-    be_member,
     issued_by,
     bank_account,
     bank,
@@ -330,15 +329,6 @@ async function processDataActivation(data, token) {
   bcrypt.genSalt(saltRounds, function (err, salt) {
     bcrypt.hash(password, salt, async function (err, hash) {
 
-      // --------------- FIND DONATE USER -------------------
-      const userOfDonateSales = await User.findOne({
-        _id: donate_sales_id,
-      }).exec();
-
-      const userOfInvite = await User.findOne({
-        _id: invite_code,
-      }).exec();
-
       // --------------- CREATE AVATAR -------------------
       const listCharacterOfName = full_name.split(" ");
       const avatarKey = `${listCharacterOfName[listCharacterOfName.length - 2]}+${listCharacterOfName[listCharacterOfName.length - 1]}`;
@@ -357,7 +347,6 @@ async function processDataActivation(data, token) {
         parentId: donate_sales_id,
         created_time: new Date(),
         id_code,
-        be_member,
         issued_by,
         bank,
         bank_account,
@@ -372,49 +361,59 @@ async function processDataActivation(data, token) {
         expired: false
       });
 
-      user.save(function (err) {
+      user.save(async function (err) {
         if (err) {
           unSavedErr.push({ field: "user" });
         } else {
-          if (groupNumber === "1") {
-            Tree.findOneAndUpdate(
-              {
-                parent: userOfDonateSales._id,
-              },
-              {
-                $push: { group1: user._id },
-              },
-              async (err) => {
-                if (err) {
-                  throw err;
+
+          // --------------- FIND DONATE USER -------------------
+          if (invite_code !== process.env.INVITE_CODE) {
+            const userOfDonateSales = await User.findOne({
+              _id: donate_sales_id,
+            }).exec();
+
+            if (groupNumber === "1") {
+
+
+              Tree.findOneAndUpdate(
+                {
+                  parent: userOfDonateSales._id,
+                },
+                {
+                  $push: { group1: user._id },
+                },
+                async (err) => {
+                  if (err) {
+                    throw err;
+                  }
                 }
-              }
-            );
-          } else if (groupNumber === "2") {
-            Tree.findOneAndUpdate(
-              { parent: userOfDonateSales._id },
-              {
-                $push: { group2: user._id },
-              },
-              async function (err) {
-                if (err) {
-                  throw err;
+              );
+            } else if (groupNumber === "2") {
+              Tree.findOneAndUpdate(
+                { parent: userOfDonateSales._id },
+                {
+                  $push: { group2: user._id },
+                },
+                async function (err) {
+                  if (err) {
+                    throw err;
+                  }
+                });
+            } else if (groupNumber === "3") {
+              Tree.findOneAndUpdate(
+                { parent: userOfDonateSales._id },
+                {
+                  $push: { group3: user._id },
+                },
+                async function (err) {
+                  if (err) {
+                    throw err;
+                  }
                 }
-              });
-          } else if (groupNumber === "3") {
-            Tree.findOneAndUpdate(
-              { parent: userOfDonateSales._id },
-              {
-                $push: { group3: user._id },
-              },
-              async function (err) {
-                if (err) {
-                  throw err;
-                }
-              }
-            );
-          } else {
-            console.log("thêm id vào cha thất bại");
+              );
+            } else {
+              console.log("thêm id vào cha thất bại");
+            }
           }
         }
       });
@@ -440,26 +439,36 @@ async function processDataActivation(data, token) {
 
 
       // --------------- UPDATE AMOUNT OF PARENT -------------------
-      await User.findOneAndUpdate(
-        { _id: invite_code },
-        {
-          amount:
-            buy_package === "1"
-              ? userOfInvite.amount + 40
-              : userOfInvite.amount + 160,
-        }
-      ).exec();
+      if (invite_code !== process.env.INVITE_CODE) {
+
+        const userOfInvite = await User.findOne({
+          _id: invite_code,
+        }).exec();
+
+        await User.findOneAndUpdate(
+          { _id: invite_code },
+          {
+            amount:
+              buy_package === "1"
+                ? userOfInvite.amount + 40
+                : userOfInvite.amount + 160,
+          }
+        ).exec();
+      }
 
       // --------------- UPDATE LEVEL PARENT -------------------
-
-      updateParent(invite_code, buy_package);
+      if (invite_code !== process.env.INVITE_CODE) {
+        updateParent(invite_code, buy_package);
+      }
 
       // --------------- SAVE COMMISSTIONS -------------------
-      returnCommission(
-        invite_code,
-        buy_package,
-        full_name
-      );
+      if (invite_code !== process.env.INVITE_CODE) {
+        returnCommission(
+          invite_code,
+          buy_package,
+          full_name
+        );
+      }
 
       // --------------- GET APP ACTIVATIONS LINKS -------------------
       const links = await getActiveLink(
@@ -483,12 +492,16 @@ async function processDataActivation(data, token) {
       );
 
       // --------------- SEND THANKS MAIL -------------------
-      thankMail(
-        userOfInvite.full_name,
-        userOfInvite.email,
-        full_name
-      );
-
+      if (invite_code !== process.env.INVITE_CODE) {
+        const userOfInvite = await User.findOne({
+          _id: invite_code,
+        }).exec();
+        thankMail(
+          userOfInvite.full_name,
+          userOfInvite.email,
+          full_name
+        );
+      }
       // --------------- RESET TOKEN TO EMPTY -------------------
       await Transaction.findOneAndUpdate(
         { token },
