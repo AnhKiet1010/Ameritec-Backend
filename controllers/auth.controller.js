@@ -756,7 +756,6 @@ exports.activationController = async (req, res) => {
 
 exports.loginController = async (req, res) => {
   const { acc, password } = req.body;
-  console.log(req.body);
 
   await User.findOne({
     $or: [{ email: acc }, { phone: acc }],
@@ -774,6 +773,14 @@ exports.loginController = async (req, res) => {
         ],
       });
     }
+
+    // if(user.expired === true) {
+    //   return res.json({
+    //     status: 401,
+    //     message: "Tài khoản của Bạn đã hết hạn! Vui lòng liên hệ Công Ty",
+    //     errors: [],
+    //   });
+    // }
     bcrypt.compare(password, user.password, function (err, result) {
       // result == true
       if (!result || err) {
@@ -795,7 +802,7 @@ exports.loginController = async (req, res) => {
           },
           process.env.JWT_SECRET,
           {
-            expiresIn: "1d",
+            expiresIn: "8h",
           }
         );
         return res.json({
@@ -866,77 +873,6 @@ const countTotalChildMemberForLevel = async (
       }
     }
   }
-};
-
-exports.loginRequest = async (req, res) => {
-  const { id } = req.query;
-  const user = await User.findOne({ _id: id }).exec();
-
-  var targetNumber;
-  var countLevel;
-  switch (user.level) {
-    case 0:
-      targetNumber = process.env.STEP1_NUMBER;
-      countLevel = 0;
-      break;
-    case 1:
-      targetNumber = process.env.STEP2_NUMBER;
-      countLevel = 1;
-      break;
-    case 2:
-      targetNumber = process.env.STEP3_NUMBER;
-      countLevel = 2;
-      break;
-    case 3:
-      targetNumber = process.env.STEP4_NUMBER;
-      countLevel = 3;
-      break;
-    case 4:
-      targetNumber = process.env.STEP5_NUMBER;
-      countLevel = 4;
-      break;
-    case 5:
-      targetNumber = process.env.STEP6_NUMBER;
-      countLevel = 5;
-      break;
-    default:
-      targetNumber = 0;
-      countLevel = 0;
-  }
-  const treeOfUser = await Tree.findOne({ parent: id })
-    .select("group1 group2 group3")
-    .exec();
-  const totalChildMemberGroup1 = await countTotalChildMemberForLevel(
-    [...treeOfUser.group1],
-    0,
-    countLevel
-  );
-  const totalChildMemberGroup2 = await countTotalChildMemberForLevel(
-    [...treeOfUser.group2],
-    0,
-    countLevel
-  );
-  const totalChildMemberGroup3 = await countTotalChildMemberForLevel(
-    [...treeOfUser.group3],
-    0,
-    countLevel
-  );
-  const totalPersonPackage = await countTotalPersonPackage(
-    [...treeOfUser.group1, ...treeOfUser.group2, ...treeOfUser.group3],
-    0,
-    countLevel
-  );
-  console.log("Nhóm 1", totalChildMemberGroup1);
-  console.log("Nhóm 2", totalChildMemberGroup2);
-  console.log("Nhóm 3", totalChildMemberGroup3);
-  res.json({
-    user,
-    totalGroup1: totalChildMemberGroup1,
-    totalGroup2: totalChildMemberGroup2,
-    totalGroup3: totalChildMemberGroup3,
-    totalPersonPackage,
-    targetNumber: parseInt(targetNumber),
-  });
 };
 
 exports.forgotPasswordController = async (req, res) => {

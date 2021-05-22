@@ -12,7 +12,6 @@ const {
   countTotalChildMemberForLevel,
   countTotalPersonPackage,
   getFullChildren,
-  getData,
   countTotalChildMember,
   randomString,
   upgradeMail

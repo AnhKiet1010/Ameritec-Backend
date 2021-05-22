@@ -2,75 +2,64 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user.model');
 
 exports.checkAdmin = async (req, res, next) => {
-  console.log('headers', req.headers);
-  next();
-  // const { id } = req.params;
-  // const user = await User.findOne({ _id: id }).select('role').exec();
-  // if (user.role === 'admin') {
-  //   next();
-  // } else {
-  //   console.log("Unauthorized!!!");
-  //   res.json({
-  //     status: 400,
-  //     message: "Bạn không được quyền thao tác này",
-  //     errors: []
-  //   });
-  // }
-}
+  console.log('new headers',req.get('authorization'));
+  const headersToken = req.get('authorization');
+  const token = headersToken.split(' ')[1];
 
-exports.checkAdminPost = (req, res, next) => {
-  const { token } = req.body;
+  jwt.verify(
+    token,
+    process.env.JWT_SECRET,
+    async (err, decoded) => {
+      if (err) {
+        return res.json({
+          status: 401,
+          message: "Phiên đăng nhập đã hết hạn.Vui lòng đăng nhập lại!",
+          errors: [],
+        });
+      } else {
+        const { _id } = jwt.decode(token);
 
-  if (token) {
-    jwt.verify(
-      token,
-      process.env.JWT_SECRET,
-      async (err, decoded) => {
-        if (err) {
-          console.log("token error");
-          res.json({
-            success: false,
-            errors: [
-              {
-                label: "token_error",
-                err_message: "Phiên đăng nhập hết hạn hoặc không đúng",
-              },
-            ],
-          });
-        } else {
-          const { _id } = jwt.decode(token);
-          const user = await Admin.findOne({ _id }).select('role').exec();
-
-          if (user.role === 'admin') {
-            next()
-          } else {
-            res.json({
-              success: false,
-              errors: [
-                {
-                  label: "permission_error",
-                  err_message: "Bạn không được quyền truy cập vào trang này",
-                },
-              ],
-            });
-          }
+        const user = await User.findOne({_id}).exec();
+        if(user.role !== 'admin') {
+          return res.json({
+            status: 403,
+            message: "Not permission",
+            errors: [],
+          })
         }
-      })
-  }
+        next();
+      }
+    });
 }
 
-exports.checkMember = async (req, res, next) => {
-  const { id } = req.params;
+exports.checkClient = async (req, res, next) => {
+  console.log('new headers',req.get('authorization'));
+  const headersToken = req.get('authorization');
+  const token = headersToken.split(' ')[1];
 
-  const user = await User.findOne({_id: id}).exec();
+  jwt.verify(
+    token,
+    process.env.JWT_SECRET,
+    async (err, decoded) => {
+      if (err) {
+        return res.json({
+          status: 401,
+          message: "Phiên đăng nhập đã hết hạn.Vui lòng đăng nhập lại!",
+          errors: [],
+        });
+      } else {
+        const { _id } = jwt.decode(token);
 
-  if(user.be_member) {
-    next();
-  } else {
-    res.json({
-      status: "401",
-      message: "Vui lòng nâng cấp tài khoản"
+        const user = await User.findOne({_id}).exec();
+        if(user.role !== 'normal') {
+          return res.json({
+            status: 403,
+            message: "Not permission",
+            errors: [],
+          })
+        }
+        next();
+      }
     });
-  }
 }
 

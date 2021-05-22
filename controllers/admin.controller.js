@@ -2,6 +2,7 @@ const User = require("../models/user.model");
 const Activations = require("../models/activation.model");
 const Tree = require("../models/tree.model");
 const Transaction = require("../models/transaction.model");
+const Commission = require("../models/commission.model");
 const { PROVINCES } = require("../constants/province");
 const jwt = require("jsonwebtoken");
 const Policy = require("../models/policy.model");
@@ -890,92 +891,6 @@ const getListChildId = async (id) => {
   return [...group1, ...group2, ...group3];
 };
 
-const getData = async (group, parentIn) => {
-  let kq = [];
-
-  for (let i of group) {
-    let parent = await User.findOne({ _id: i })
-      .select(
-        "full_name child1 child2 child3 countChild avatar groupNumber level buy_package"
-      )
-      .exec();
-    let listGroup = await getListChildId(parent._id);
-    if (listGroup.length > 0) {
-      for (let id of listGroup) {
-        let child = await User.findOne({ _id: id })
-          .select(
-            "full_name child1 child2 child3 countChild avatar groupNumber level buy_package"
-          )
-          .exec();
-        if (child.groupNumber === "1") {
-          parent.child1.arr.push(child);
-          parent.child1.countChild = await countTotalChildMember(
-            parent.child1.arr.map((item) => item._id)
-          );
-        } else if (child.groupNumber === "2") {
-          parent.child2.arr.push(child);
-          parent.child2.countChild = await countTotalChildMember(
-            parent.child2.arr.map((item) => item._id)
-          );
-        } else if (child.groupNumber === "3") {
-          parent.child3.arr.push(child);
-          parent.child3.countChild = await countTotalChildMember(
-            parent.child3.arr.map((item) => item._id)
-          );
-        }
-        let listGroupOfChild = await getListChildId(child._id);
-        parent.countChild = await countTotalChildMember(listGroup);
-        child.countChild = await countTotalChildMember(listGroupOfChild);
-        await getData(listGroupOfChild, child);
-      }
-      if (parentIn) {
-        if (parent.groupNumber === "1") {
-          parentIn.child1.arr.push(parent);
-          parentIn.child1.countChild = await countTotalChildMember(
-            parentIn.child1.arr.map((item) => item._id)
-          );
-        } else if (parent.groupNumber === "2") {
-          parentIn.child2.arr.push(parent);
-          parentIn.child2.countChild = await countTotalChildMember(
-            parentIn.child2.arr.map((item) => item._id)
-          );
-        } else if (parent.groupNumber === "3") {
-          parentIn.child3.arr.push(parent);
-          parentIn.child3.countChild = await countTotalChildMember(
-            parentIn.child3.arr.map((item) => item._id)
-          );
-        }
-      } else {
-        kq.push(parent);
-      }
-    } else {
-      if (parentIn) {
-        if (parent.groupNumber === "1") {
-          parentIn.child1.arr.push(parent);
-          parentIn.child1.countChild = await countTotalChildMember(
-            parentIn.child1.arr.map((item) => item._id)
-          );
-        } else if (parent.groupNumber === "2") {
-          parentIn.child2.arr.push(parent);
-          parentIn.child2.countChild = await countTotalChildMember(
-            parentIn.child2.arr.map((item) => item._id)
-          );
-        } else if (parent.groupNumber === "3") {
-          parentIn.child3.arr.push(parent);
-          parentIn.child3.countChild = await countTotalChildMember(
-            parentIn.child3.arr.map((item) => item._id)
-          );
-        }
-      } else {
-        kq.push(parent);
-      }
-      continue;
-    }
-  }
-  return kq;
-};
-
-
 exports.getTree = async (req, res) => {
   const { id, search, page } = req.params;
 
@@ -1002,8 +917,8 @@ exports.getTree = async (req, res) => {
   }
 
   const listAllUser = await User.find({ $and: [{ role: { $ne: 'admin' } }, { parentId: process.env.INVITE_CODE }] }).select("full_name")
-  // .limit(perPage)
-  //   .skip(perPage * page)
+    // .limit(perPage)
+    //   .skip(perPage * page)
     .sort({
       _id: -1
     }).exec();
@@ -1040,68 +955,94 @@ exports.getTree = async (req, res) => {
 };
 
 exports.createAdmin = async (req, res) => {
-  console.log("body", req.body);
-  var errors = [];
-  const { email, phone, password, full_name } = req.body;
-  var validUserEmail = await User.findOne({ email }).exec();
-  var validUserPhone = await User.findOne({ phone }).exec();
+  const headersToken = req.get('authorization');
+  const token = headersToken.split(' ')[1];
 
-  if (validUserEmail) {
-    errors.push({ label: "email", err_message: "Email đã được sử dụng" });
-  }
+  jwt.verify(
+    token,
+    process.env.JWT_SECRET,
+    async (err, decoded) => {
+      if (err) {
+        return res.json({
+          status: 401,
+          message: "Đường dẫn đã hết hạn.Vui lòng đăng nhập lại!",
+          errors: [],
+        });
+      } else {
+        const { _id } = jwt.decode(token);
 
-  if (validUserPhone) {
-    errors.push({ label: "phone", err_message: "Số điện thoại đã được sử dụng" });
-  }
-
-
-  if (errors.length === 0) {
-
-    const listCharacterOfName = full_name.split(" ");
-    const avatarKey = `${listCharacterOfName[listCharacterOfName.length - 2]}+${listCharacterOfName[listCharacterOfName.length - 1]}`;
-
-    bcrypt.genSalt(saltRounds, function (err, salt) {
-      bcrypt.hash(password, salt, async function (err, hash) {
-        if (err) {
-          console.log(err);
-          return res.json(err);
-        } else {
-          const user = new User({
-            full_name,
-            email,
-            phone,
-            password: hash,
-            point: 0,
-            level: 0,
-            amount: 0,
-            avatar: `https://ui-avatars.com/api/?name=${avatarKey}&background=random`,
-            role: "admin",
-            parentId: "AMERITEC",
-          });
-
-          user.save((err) => {
-            if (err) {
-              console.log(err);
-            } else {
-              res.json({
-                status: 200,
-                errors: [],
-                data: {},
-                message: "Đã Admin thành công"
-              });
-            }
+        const user = await User.findOne({ _id }).exec();
+        if (user.role !== 'admin') {
+          return res.json({
+            status: 403,
+            message: "Not permission",
+            errors: [],
           })
         }
-      });
+
+        var errors = [];
+        const { email, phone, password, full_name } = req.body;
+        var validUserEmail = await User.findOne({ email }).exec();
+        var validUserPhone = await User.findOne({ phone }).exec();
+
+        if (validUserEmail) {
+          errors.push({ label: "email", err_message: "Email đã được sử dụng" });
+        }
+
+        if (validUserPhone) {
+          errors.push({ label: "phone", err_message: "Số điện thoại đã được sử dụng" });
+        }
+
+
+        if (errors.length === 0) {
+
+          const listCharacterOfName = full_name.split(" ");
+          const avatarKey = `${listCharacterOfName[listCharacterOfName.length - 2]}+${listCharacterOfName[listCharacterOfName.length - 1]}`;
+
+          bcrypt.genSalt(saltRounds, function (err, salt) {
+            bcrypt.hash(password, salt, async function (err, hash) {
+              if (err) {
+                console.log(err);
+                return res.json(err);
+              } else {
+                const user = new User({
+                  full_name,
+                  email,
+                  phone,
+                  password: hash,
+                  point: 0,
+                  level: 0,
+                  amount: 0,
+                  avatar: `https://ui-avatars.com/api/?name=${avatarKey}&background=random`,
+                  role: "admin",
+                  parentId: "AMERITEC",
+                });
+
+                user.save((err) => {
+                  if (err) {
+                    console.log(err);
+                  } else {
+                    res.json({
+                      status: 200,
+                      errors: [],
+                      data: {},
+                      message: "Đã Admin thành công"
+                    });
+                  }
+                })
+              }
+            });
+          });
+        }
+        else {
+          res.json({
+            status: 401,
+            errors,
+            message: "Có lỗi xảy ra!"
+          });
+        }
+      }
     });
-  }
-  else {
-    res.json({
-      status: 401,
-      errors,
-      message: "Có lỗi xảy ra!"
-    });
-  }
 }
 
 exports.createPolicy = async (req, res) => {
@@ -1127,30 +1068,6 @@ exports.createPolicy = async (req, res) => {
       });
     }
   });
-
-}
-
-exports.updateAdmin = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const filter = { _id: id, role: 'admin' };
-    const update = req.body;
-    await User.findOneAndUpdate(filter, update);
-    const user = await User.findOne(filter);
-    res.json({
-      status: 200,
-      data: {
-        user
-      },
-      errors: [],
-      message: ""
-    });
-  } catch (error) {
-    res.status(500).json({
-      errors: error.message,
-      message: ""
-    });
-  }
 
 }
 
@@ -1580,6 +1497,17 @@ const removeFromArr = (arr, id) => {
   }
   return;
 };
+
+exports.getReceipts = async (req, res) => {
+  const commissionSuccess = await Commission.find({ status: 'success' }).sort({ _id: -1 }).exec();
+  const commissionPending = await Commission.find({ status: 'pending' }).exec();
+
+  res.json({
+    status: 200,
+    errors: [],
+    data: { commissionSuccess, commissionPending }
+  });
+}
 
 const updateRootTreeGroup = async (group, rootItem, moveItem, res) => {
   const treeOfRoot = await Tree.findOne({ parent: rootItem._id }).exec();
