@@ -17,22 +17,26 @@ const {
     helperInsert,
     helperInsertCalLevel,
     editUser,
-    getReceipts
+    getReceipts,
+    checkLevel
 } = require('../controllers/admin.controller');
 
+router.post('/checkLevel', checkLevel);
 router.post('/helperInsert', helperInsert);
 router.post('/helperInsertCalLevel', helperInsertCalLevel);
-router.get('/dashboard',checkAdmin, getDashboard);
+router.get('/dashboard', checkAdmin, getDashboard);
 router.get('/storage', checkAdmin, getStorage);
 router.get('/user/:id', checkAdmin, getUser);
 router.post('/user/edit/:id', editUser);
-router.get('/getPendingList', checkAdmin, getPendingList);
-router.get('/tree/:id/:search/:page',checkAdmin,  getTree);
-router.post('/edit-tree', editTree);
+
+router.get('/getPendingList', getPendingList);
+router.get('/tree/:id/:search/:page', getTree);
+router.post('/edit-tree', checkAdmin, editTree);
+
 router.post('/change-tree', changeTree);
 router.post('/create-admin', createAdmin);
 router.post('/create-policy', createPolicy);
-router.get('/receipts',checkAdmin, getReceipts);
-router.get('/policy',checkAdmin, policy);
+router.get('/receipts', checkAdmin, getReceipts);
+router.get('/policy', checkAdmin, policy);
 
 module.exports = router;

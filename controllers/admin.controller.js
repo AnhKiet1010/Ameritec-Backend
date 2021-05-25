@@ -368,12 +368,7 @@ exports.helperInsertCalLevel = async (req, res,) => {
     let point = 0;
     let level = 0;
     if (element.parentId != "AMERITEC2021") {
-      updateParent(element.parentId, element.buy_package);
-    }
-    if (element.buy_package === "2") {
-      await User.countDocuments({ parentId: element._id }, function (err, c) {
-        level += c * 160;
-      });
+      //updateParent(element.parentId, element.buy_package);
     }
     await User.countDocuments({ parentId: element._id, buy_package: "2" }, function (err, c) {
       amount += c * 160;
@@ -385,18 +380,111 @@ exports.helperInsertCalLevel = async (req, res,) => {
     });
     element.point = point;
     element.amount = amount;
+    if (element.buy_package === "2") {
+      await User.countDocuments({ parentId: element._id }, function (err, c) {
+        if (c > 9) {
+          level = 1;
+        }
+      });
+    }
+    element.level = level;
     await element.save(function (err) {
       if (err) {
         console.log("fail to update user: " + element.id_ameritecjsc);
       }
     });
   };
+
   res.json({
     status: 200,
     errors: ["hi"],
   });
 };
+exports.checkLevel = async (req, res,) => {
+  var list = await User.find({ id_ameritecjsc: { $ne: null } }).exec();
 
+  for (const element of list) {
+    await checkLevel(element._id);
+  }
+  res.json({
+    status: 200,
+    errors: ["hi"],
+  });
+}
+const checkLevel = async (id) => {
+  if (id) {
+    var user = await User.findOne({ _id: id }).exec();
+  }
+  else {
+    return;
+  }
+  if (!user) {
+    return;
+  }
+  let flag = false;
+  let lv = parseInt(user.level) + 1;
+  switch (lv) {
+    case 1:
+      await User.countDocuments({ parentId: id }, function (err, c) {
+        if (c > 9) {
+          user.level = 1;
+          flag = true;
+        }
+      });
+      await user.save(function (err) {
+        if (err) {
+          console.log("fail to checkLevel user: " + id);
+        }
+      });
+      break;
+    case 2:
+      await User.countDocuments({ parentId: id, level: 1 }, function (err, c) {
+        if (c > 9) {
+          user.level = 2;
+          flag = true;
+        }
+      });
+      await user.save(function (err) {
+        if (err) {
+          console.log("fail to checkLevel user: " + id);
+        }
+      });
+      break;
+    case 3:
+      await User.countDocuments({ parentId: id, level: 2 }, function (err, c) {
+        if (c > 9) {
+          user.level = 3;
+          flag = true;
+        }
+      });
+      await user.save(function (err) {
+        if (err) {
+          console.log("fail to checkLevel user: " + id);
+        }
+      });
+      break;
+    case 4:
+      await User.countDocuments({ parentId: _id, level: 3 }, function (err, c) {
+        if (c > 9) {
+          user.level = 4;
+          flag = true;
+        }
+      });
+      await user.save(function (err) {
+        if (err) {
+          console.log("fail to checkLevel user: " + id);
+        }
+      });
+      break;
+    default:
+      break;
+  }
+  if (flag === true) {
+    await checkLevel(user.parentId);
+  }
+  // await checkLevel(user.parentId);
+  return;
+}
 exports.policy = async (req, res) => {
 
   const listPolicy = await Policy.find({}).sort({ _id: -1 }).exec();
@@ -1073,20 +1161,20 @@ exports.createPolicy = async (req, res) => {
 
 exports.editTree = async (req, res) => {
   console.log('values', req.body);
-  const { move_acc, root_acc } = req.body;
+  const { move_acc, root_acc, group } = req.body;
 
   const arr = root_acc.split("/");
 
   const invite_code = arr[arr.length - 2];
 
-  const group = arr[arr.length - 1];
+  //const group = arr[arr.length - 1];
 
   const moveItem = await User.findOne({
     $or: [{ email: move_acc }, { phone: move_acc }],
   })
     .select("_id")
     .exec();
-  const rootItem = await User.findOne({ phone: invite_code })
+  const rootItem = await User.findOne({ $or: [{ email: root_acc }, { phone: root_acc }], })
     .select("_id")
     .exec();
 
@@ -1114,7 +1202,7 @@ exports.editTree = async (req, res) => {
     });
   }
 
-  const allTree = await Tree.find({ parent: { $ne: moveItem._id } }).exec();
+
 
   if (moveItem.ParentId === rootItem._id) {
     return res.json({
@@ -1489,7 +1577,172 @@ exports.changeTree = async (req, res) => {
   });
 };
 
+//đổi vị trí 2 tml
+exports.changeTree2 = async (req, res) => {
+  const { move_acc, root_acc } = req.body;
+  const moveItem = await User.findOne({
+    $or: [{ email: move_acc }, { phone: move_acc }],
+  })
+    .exec();
+  const rootItem = await User.findOne({ $or: [{ email: root_acc }, { phone: root_acc }], })
+    .exec();
+  //xu ly cay cua goc va chon
+  const moveTree = await Tree.findOne({ parent: moveItem._id }).exec();
+  const rootTree = await Tree.findOne({ parent: rootItem._id }).exec();
+  moveTree.parent = rootItem._id;
+  rootTree.parent = moveItem._id;
+  await moveTree.save(function (err) {
+    if (err) {
+      console.log("fail to save moveTree!");
+    }
+  });
+  await rootTree.save(function (err) {
+    if (err) {
+      console.log("fail to save rootTree!");
+    }
+  });
+
+  const moveTreeInAr = await Tree.find({ $or: [{ group1: moveItem._id }, { group2: moveItem._id }, { group3: moveItem._id }] }).exec();
+  const rootTreeInAr = await Tree.find({ $or: [{ group1: rootItem._id }, { group2: rootItem._id }, { group3: rootItem._id }] }).exec();
+
+  const moveTreeIn = moveTreeInAr[0];
+  const rootTreeIn = rootTreeInAr[0];
+  //chọn sang góc
+  if (moveTreeIn.group1.includes(moveItem._id)) {
+    rootTreeIn.group1.push(rootItem._id);
+    moveTreeIn.group1.splice(moveTreeIn.group1.indexOf(moveItem._id), 1);
+  }
+  if (moveTreeIn.group2.includes(moveItem._id)) {
+    rootTreeIn.group2.push(rootItem._id);
+    moveTreeIn.group2.splice(moveTreeIn.group2.indexOf(moveItem._id), 1);
+  }
+  if (moveTreeIn.group3.includes(moveItem._id)) {
+    rootTreeIn.group3.push(rootItem._id);
+    moveTreeIn.group3.splice(moveTreeIn.group3.indexOf(moveItem._id), 1);
+  }
+  //góc sang chọn
+  if (rootTreeIn.group1.includes(rootItem._id)) {
+    moveTreeIn.group1.push(moveItem._id);
+    rootTreeIn.group1.splice(rootTreeIn.group1.indexOf(rootItem._id), 1);
+  }
+  if (rootTreeIn.group2.includes(rootItem._id)) {
+    moveTreeIn.group2.push(moveItem._id);
+    rootTreeIn.group2.splice(rootTreeIn.group2.indexOf(rootItem._id), 1);
+  }
+  if (rootTreeIn.group3.includes(rootItem._id)) {
+    moveTreeIn.group3.push(moveItem._id);
+    rootTreeIn.group3.splice(rootTreeIn.group3.indexOf(rootItem._id), 1);
+  }
+  await moveTreeIn.save(function (err) {
+    if (err) {
+      console.log("fail to save moveTreeIn!");
+    }
+  });
+  await rootTreeIn.save(function (err) {
+    if (err) {
+      console.log("fail to save rootTreeIn!");
+    }
+  });
+  const listConMove = User.find({ parentId: moveItem._id }).exec();
+  const listConRoot = User.find({ parentId: rootItem._id }).exec();
+  for (const element of listConMove) {
+    element.parentId = rootItem._id;
+    await element.save(function (err) {
+      if (err) {
+        console.log("fail to save listConMove!");
+      }
+    });
+  }
+  for (const element of listConRoot) {
+    element.parentId = moveItem._id;
+    await element.save(function (err) {
+      if (err) {
+        console.log("fail to save listConRoot!");
+      }
+    });
+  }
+}
+
+//chuyển tree
+exports.editTree2 = async (req, res) => {
+  const { move_acc, root_acc, group } = req.body;
+  const moveItem = await User.findOne({
+    $or: [{ email: move_acc }, { phone: move_acc }],
+  })
+    .exec();
+  const rootItem = await User.findOne({ $or: [{ email: root_acc }, { phone: root_acc }], })
+    .exec();
+  const moveFatherItem = await User.findOne({
+    _id: moveItem.parentId
+  }).exec();
+  const moveFatherTreeAr = await Tree.find({ $or: [{ group1: moveItem._id }, { group2: moveItem._id }, { group3: moveItem._id }] }).exec();
+  const moveFatherTree = moveFatherTreeAr[0];
+  const rootTree = await Tree.findOne({ parent: rootItem._id }).exec();
+  if (moveFatherTree.group1.includes(moveItem._id)) {
+    moveFatherTree.group1.splice(moveFatherTree.group1.indexOf(moveItem._id), 1);
+  }
+  if (moveFatherTree.group2.includes(moveItem._id)) {
+    moveFatherTree.group2.splice(moveFatherTree.group2.indexOf(moveItem._id), 1);
+  }
+  if (moveFatherTree.group3.includes(moveItem._id)) {
+    moveFatherTree.group3.splice(moveFatherTree.group3.indexOf(moveItem._id), 1);
+  }
+  await moveFatherTree.save(function (err) {
+    if (err) {
+      console.log("fail to save moveFatherTree!");
+    }
+  });
+  switch (group) {
+    case "1":
+      rootTree.group1.push(moveItem._id);
+      break;
+    case "2":
+      rootTree.group2.push(moveItem._id);
+      break;
+    case "3":
+      rootTree.group3.push(moveItem._id);
+      break;
+  }
+  await rootTree.save(function (err) {
+    if (err) {
+      console.log("fail to save rootTree!");
+    }
+  });
+  await CalcuAmoutPoint(rootItem._id);
+  await CalcuAmoutPoint(moveFatherItem._id);
+}
+
+const CalcuAmoutPoint = async (id) => {
+  const user = await User.findOne({
+    _id: id
+  }).exec();
+  const listcon = await User.find({
+    parentId: user._id
+  }).exec();
+  let amount = 0;
+  let point = 0;
+  for (const element of listcon) {
+    await CalcuAmoutPoint(element._id);
+  }
+  await User.countDocuments({ parentId: user._id, buy_package: "2" }, function (err, c) {
+    amount += c * 160;
+    point += c * 1;
+  });
+  await User.countDocuments({ parentId: user._id, buy_package: "1" }, function (err, c) {
+    amount += c * 40;
+    point += c * 0.25;
+  });
+  user.amount = amount;
+  user.point = point;
+  await checkLevel(id);
+  await user.save(function (err) {
+    if (err) {
+      console.log("fail to save user!");
+    }
+  });
+}
 const removeFromArr = (arr, id) => {
+
   const index = arr.indexOf(id);
   if (index > -1) {
     arr.splice(index, 1);
