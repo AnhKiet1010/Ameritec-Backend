@@ -309,7 +309,6 @@ exports.registerController = async (req, res) => {
     id_time,
   } = req.body;
 
-  console.log("body", req.body);
   var cmndMT = "";
   var cmndMS = "";
 
@@ -472,6 +471,7 @@ exports.registerController = async (req, res) => {
       phone,
       expired_time: oneYearFromNow,
       buy_package,
+      amount: buy_package === '2' ? process.env.PACKAGE_PRICE : process.env.PERSIONAL_PRICE
     });
 
 

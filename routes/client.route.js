@@ -10,7 +10,7 @@ const {
     upgrade,
     editProfile,
     inviteUrl,
-    transaction,
+    receipts,
     policy
 } = require('../controllers/client.controller');
 
@@ -19,7 +19,7 @@ router.get('/tree/:id/:search', checkClient, tree);
 router.post('/upgrade', upload.fields([{ name: 'CMND_Front', maxCount: 1 }, { name: 'CMND_Back', maxCount: 1 }]), upgrade);
 router.get('/profile/:id', checkClient, profile);
 router.post('/profile/edit', editProfile);
-router.get('/transaction/:id',checkClient, transaction);
+router.get('/receipts/:id',checkClient, receipts);
 router.post('/referral',checkClient, inviteUrl);
 router.get('/policy/:id',checkClient, policy);
 

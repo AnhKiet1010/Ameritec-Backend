@@ -539,6 +539,8 @@ exports.getUser = async (req, res) => {
     data: {
       user,
       result: user.buy_package === "2" ? [
+        { label: "Giới tính", value: user.gender === 1 ? "Nam" : user.gender === 2 ? "Nữ" : "N/A" },
+        { label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0] },
         { label: "Họ và tên", value: user.full_name },
         { label: "Email", value: user.email },
         { label: "Số điện thoại", value: user.phone },
@@ -558,9 +560,7 @@ exports.getUser = async (req, res) => {
       ] : [
         { label: "Họ và tên", value: user.full_name },
         { label: "Email", value: user.email },
-        { label: "Số điện thoại", value: user.phone },
-        { label: "Giới tính", value: user.gender === 1 ? "Nam" : user.gender === 2 ? "Nữ" : "N/A" },
-        { label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0] },
+        { label: "Số điện thoại", value: user.phone }
       ]
 
     },

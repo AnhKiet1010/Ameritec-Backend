@@ -1,28 +1,5 @@
-const User = require("../models/user.model");
 const Transaction = require("../models/transaction.model");
-const Commission = require("../models/commission.model");
 const { Mail } = require("./mail.js");
-
-
-// ------------- transporter for mail server -------------
-// let transporter = nodemailer.createTransport({
-//   host: "https://mail9020.maychuemail.com",
-//   port: 2096,
-//   secure: false, // true for 465, false for other ports
-//   auth: {
-//     user: process.env.AMERITEC_EMAIL, // generated ethereal user
-//     pass: process.env.AMERITEC_EMAIL_PASS, // generated ethereal password
-//   },
-// });
-
-
-exports.getPendingList = async (req, res) => {
-  const list_pending = await Transaction.find({ status: "pending" }).exec();
-
-  res.json({
-    list_pending,
-  });
-};
 
 exports.activeTrans = async (req, res) => {
   const id = req.params.id;
@@ -253,22 +230,3 @@ exports.activeTrans = async (req, res) => {
     });
   }
 };
-
-exports.getReceipts = async (req, res) => {
-  const { id } = req.query;
-  const user = await User.findOne({ _id: id }).exec();
-  const transaction = await Transaction.findOne({ email: user.email, status: 'success' }).exec();
-  const commission = await Commission.find({ receive_mem: id }).sort({ _id: -1 }).exec();
-
-  res.json({ transaction, commission });
-}
-
-exports.getAdminReceipts = async (req, res) => {
-  const commissionSuccess = await Commission.find({ status: 'success' }).sort({ _id: -1 }).exec();
-  const commissionPending = await Commission.find({ status: 'pending' }).exec();
-
-  res.json({ 
-    status: 200,
-    errors: [],
-    data: { commissionSuccess, commissionPending} });
-}

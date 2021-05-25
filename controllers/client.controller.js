@@ -498,6 +498,8 @@ exports.profile = async (req, res) => {
     data: {
       user,
       result: user.buy_package === "2" ? [
+        { label: "Giới tính", value: user.gender === 2 ? "Nam" : user.gender === 3 ? "Nữ" : "N/A" },
+        { label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0] },
         { label: "Họ và tên", value: user.full_name },
         { label: "Email", value: user.email },
         { label: "Số điện thoại", value: user.phone },
@@ -515,8 +517,6 @@ exports.profile = async (req, res) => {
         { label: "Họ và tên", value: user.full_name },
         { label: "Email", value: user.email },
         { label: "Số điện thoại", value: user.phone },
-        { label: "Giới tính", value: user.gender === 2 ? "Nam" : user.gender === 3 ? "Nữ" : "N/A" },
-        { label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0] },
       ]
 
     },
@@ -836,7 +836,7 @@ exports.inviteUrl = async (req, res) => {
   });
 }
 
-exports.transaction = async (req, res) => {
+exports.receipts = async (req, res) => {
   const { id } = req.params;
   const user = await User.findOne({ _id: id }).exec();
   const transaction = await Transaction.find({ email: user.email, status: 'success' }).exec();

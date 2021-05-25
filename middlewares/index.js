@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user.model');
 
 exports.checkAdmin = async (req, res, next) => {
-  console.log('new headers',req.get('authorization'));
   const headersToken = req.get('authorization');
   const token = headersToken.split(' ')[1];
 
@@ -33,7 +32,6 @@ exports.checkAdmin = async (req, res, next) => {
 }
 
 exports.checkClient = async (req, res, next) => {
-  console.log('new headers',req.get('authorization'));
   const headersToken = req.get('authorization');
   const token = headersToken.split(' ')[1];
 
