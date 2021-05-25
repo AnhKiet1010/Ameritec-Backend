@@ -18,8 +18,10 @@ const {
     helperInsert,
     helperInsertCalLevel,
     editUser,
+    checkLevel
 } = require('../controllers/admin.controller');
 
+router.post('/checkLevel', checkLevel);
 router.post('/helperInsert', helperInsert);
 router.post('/helperInsertCalLevel', helperInsertCalLevel);
 router.get('/dashboard', getDashboard);
@@ -29,7 +31,7 @@ router.post('/user/edit/:id', editUser);
 router.get('/getPendingList', getPendingList);
 router.get('/tree/:id/:search/:page', getTree);
 router.post('/update-admin/:id', updateAdmin);
-router.post('/edit-tree',checkAdmin, editTree);
+router.post('/edit-tree', checkAdmin, editTree);
 router.post('/change-tree', changeTree);
 router.post('/create-admin', createAdmin);
 router.post('/create-policy', createPolicy);
