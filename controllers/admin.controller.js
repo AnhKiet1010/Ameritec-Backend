@@ -8,6 +8,7 @@ const jwt = require("jsonwebtoken");
 const Policy = require("../models/policy.model");
 const bcrypt = require("bcrypt");
 const mongoose = require('mongoose');
+const { move } = require("../routes/admin.route");
 
 
 const saltRounds = 10;
@@ -400,6 +401,42 @@ exports.helperInsertCalLevel = async (req, res,) => {
     errors: ["hi"],
   });
 };
+
+const helperInsertCalLevel = async () => {
+  var list = await User.find({ id_ameritecjsc: { $ne: null } }).exec();
+  for (const element of list) {
+    let amount = 0;
+    let point = 0;
+    let level = 0;
+    if (element.parentId != "AMERITEC2021") {
+      //updateParent(element.parentId, element.buy_package);
+    }
+    await User.countDocuments({ parentId: element._id, buy_package: "2" }, function (err, c) {
+      amount += c * 160;
+      point += c * 1;
+    });
+    await User.countDocuments({ parentId: element._id, buy_package: "1" }, function (err, c) {
+      amount += c * 40;
+      point += c * 0.25;
+    });
+    element.point = point;
+    element.amount = amount;
+    if (element.buy_package === "2") {
+      await User.countDocuments({ parentId: element._id }, function (err, c) {
+        if (c > 9) {
+          level = 1;
+        }
+      });
+    }
+    element.level = level;
+    await element.save(function (err) {
+      if (err) {
+        console.log("fail to update user: " + element.id_ameritecjsc);
+      }
+    });
+  };
+};
+
 exports.checkLevel = async (req, res,) => {
   var list = await User.find({ id_ameritecjsc: { $ne: null } }).exec();
 
@@ -411,6 +448,7 @@ exports.checkLevel = async (req, res,) => {
     errors: ["hi"],
   });
 }
+
 const checkLevel = async (id) => {
   if (id) {
     var user = await User.findOne({ _id: id }).exec();
@@ -485,6 +523,7 @@ const checkLevel = async (id) => {
   // await checkLevel(user.parentId);
   return;
 }
+
 exports.policy = async (req, res) => {
 
   const listPolicy = await Policy.find({}).sort({ _id: -1 }).exec();
@@ -1159,140 +1198,6 @@ exports.createPolicy = async (req, res) => {
 
 }
 
-exports.editTree = async (req, res) => {
-  console.log('values', req.body);
-  const { move_acc, root_acc, group } = req.body;
-
-  const arr = root_acc.split("/");
-
-  const invite_code = arr[arr.length - 2];
-
-  //const group = arr[arr.length - 1];
-
-  const moveItem = await User.findOne({
-    $or: [{ email: move_acc }, { phone: move_acc }],
-  })
-    .select("_id")
-    .exec();
-  const rootItem = await User.findOne({ $or: [{ email: root_acc }, { phone: root_acc }], })
-    .select("_id")
-    .exec();
-
-  if (!moveItem) {
-    return res.json({
-      status: 401,
-      errors: [
-        {
-          label: "move_acc",
-          message: "Không tìm thấy tài khoản cần di chuyển.Kiểm tra lại",
-        },
-      ],
-    });
-  }
-
-  if (!rootItem) {
-    return res.json({
-      status: 401,
-      errors: [
-        {
-          label: "root_acc",
-          message: "Không tìm thấy tài khoản cần di chuyển.Kiểm tra lại",
-        },
-      ],
-    });
-  }
-
-
-
-  if (moveItem.ParentId === rootItem._id) {
-    return res.json({
-      status: 401,
-      errors: [
-        {
-          label: "root_acc",
-          message: "Địa chỉ chuyển đi không thay đổi.Xác nhận lại",
-        },
-        {
-          label: "move_acc",
-        },
-      ],
-    });
-  }
-
-  if (!rootItem) {
-    return res.json({
-      status: 401,
-      errors: [
-        {
-          label: "root_acc",
-          message: "Không tìm thấy tài khoản cần chuyển đến.Kiểm tra lại",
-        },
-      ],
-    });
-  }
-
-  await User.findOneAndUpdate({ _id: moveItem._id }, { groupNumber: group });
-  for (let tree of allTree) {
-    const arrTreeGroup1 = tree.group1;
-    const arrTreeGroup2 = tree.group2;
-    const arrTreeGroup3 = tree.group3;
-
-    if (arrTreeGroup1.length > 0) {
-      const result = removeFromArr(arrTreeGroup1, moveItem._id);
-      if (result) {
-        await Tree.findOneAndUpdate(
-          { _id: tree._id },
-          { group1: [...result] }
-        ).exec();
-        await User.findOneAndUpdate(
-          { _id: moveItem._id },
-          { parentId: rootItem._id }
-        ).exec();
-        await updateRootTreeGroup(group, rootItem, moveItem, res);
-        return;
-      }
-    }
-
-    if (arrTreeGroup2.length > 0) {
-      const result = removeFromArr(arrTreeGroup2, moveItem._id);
-      if (result) {
-        await Tree.findOneAndUpdate(
-          { _id: tree._id },
-          { group2: [...result] }
-        ).exec();
-        await User.findOneAndUpdate(
-          { _id: moveItem._id },
-          { parentId: rootItem._id }
-        ).exec();
-        await updateRootTreeGroup(group, moveItem, rootItem, res);
-        return;
-      }
-    }
-
-    if (arrTreeGroup3.length > 0) {
-      const result = removeFromArr(arrTreeGroup3, moveItem._id);
-      if (result) {
-        await Tree.findOneAndUpdate(
-          { _id: tree._id },
-          { group3: [...result] }
-        ).exec();
-        await User.findOneAndUpdate(
-          { _id: moveItem._id },
-          { parentId: rootItem._id }
-        ).exec();
-        await updateRootTreeGroup(group, rootItem, moveItem, res);
-        return;
-      }
-    }
-
-    res.json({
-      status: 200,
-      message: "Đã chỉnh sửa",
-      errors: []
-    })
-  }
-};
-
 exports.changeTree = async (req, res) => {
   const { values } = req.body;
   const { acc1, acc2 } = values;
@@ -1664,52 +1569,127 @@ exports.changeTree2 = async (req, res) => {
 }
 
 //chuyển tree
-exports.editTree2 = async (req, res) => {
+exports.editTree = async (req, res) => {
+  // chua handle root la admin
   const { move_acc, root_acc, group } = req.body;
-  const moveItem = await User.findOne({
-    $or: [{ email: move_acc }, { phone: move_acc }],
-  })
-    .exec();
-  const rootItem = await User.findOne({ $or: [{ email: root_acc }, { phone: root_acc }], })
-    .exec();
-  const moveFatherItem = await User.findOne({
-    _id: moveItem.parentId
-  }).exec();
-  const moveFatherTreeAr = await Tree.find({ $or: [{ group1: moveItem._id }, { group2: moveItem._id }, { group3: moveItem._id }] }).exec();
-  const moveFatherTree = moveFatherTreeAr[0];
-  const rootTree = await Tree.findOne({ parent: rootItem._id }).exec();
-  if (moveFatherTree.group1.includes(moveItem._id)) {
-    moveFatherTree.group1.splice(moveFatherTree.group1.indexOf(moveItem._id), 1);
-  }
-  if (moveFatherTree.group2.includes(moveItem._id)) {
-    moveFatherTree.group2.splice(moveFatherTree.group2.indexOf(moveItem._id), 1);
-  }
-  if (moveFatherTree.group3.includes(moveItem._id)) {
-    moveFatherTree.group3.splice(moveFatherTree.group3.indexOf(moveItem._id), 1);
-  }
-  await moveFatherTree.save(function (err) {
-    if (err) {
-      console.log("fail to save moveFatherTree!");
-    }
+  console.log(req.body);
+  // const rootItem = await User.findOne({ email: root_acc }).exec();
+
+  // const moveItem = await User.findOne({ email: move_acc }).exec();
+
+  // if (!rootItem || !moveItem) {
+  //   return res.json({
+  //     status: 401,
+  //     message: "Có Email không hợp lệ",
+  //     errors: [
+  //       {
+  //         label: "move_acc",
+  //         err_message: "Email không hợp lệ",
+  //       },
+  //       {
+  //         label: "root_acc",
+  //         err_message: "Email không hợp lệ",
+  //       },
+  //     ],
+  //   });
+  // }
+
+  // const rootTree = await Tree.findOne({ parent: rootItem._id }).exec();
+
+  // // tim cây của thằng cha thằng move
+  // if (moveItem.parentId !== process.env.INVITE_CODE) {
+  //   const moveFatherTree = await Tree.findOne({ parent: moveItem.parentId }).exec();
+
+  //   var newGroup = [];
+  //   if (moveFatherTree.group1.includes(moveItem._id)) {
+  //     let index = moveFatherTree.group1.indexOf(moveItem._id);
+  //     console.log('index1', index);
+  //     if (index !== -1) {
+  //       newGroup = [...moveFatherTree.group1.slice(0, index), ...moveFatherTree.group1.slice(index + 1)];
+  //       await Tree.findOneAndUpdate({ _id: moveFatherTree._id }, { group1: newGroup }).exec();
+  //     }
+  //   }
+  //   if (moveFatherTree.group2.includes(moveItem._id)) {
+  //     let index = moveFatherTree.group2.indexOf(moveItem._id);
+  //     console.log('index2', index);
+  //     if (index !== -1) {
+  //       newGroup = [...moveFatherTree.group2.slice(0, index), ...moveFatherTree.group2.slice(index + 1)];
+  //       await Tree.findOneAndUpdate({ _id: moveFatherTree._id }, { group2: newGroup }).exec();
+  //     }
+  //   }
+  //   if (moveFatherTree.group3.includes(moveItem._id)) {
+  //     let index = moveFatherTree.group3.indexOf(moveItem._id);
+  //     console.log('index3', index);
+  //     if (index !== -1) {
+  //       newGroup = [...moveFatherTree.group3.slice(0, index), ...moveFatherTree.group3.slice(index + 1)];
+  //       await Tree.findOneAndUpdate({ _id: moveFatherTree._id }, { group3: newGroup }).exec();
+  //     }
+  //   }
+  // }
+
+  // switch (group) {
+  //   case 1:
+  //     console.log('rootTree.group1', rootTree.group1);
+  //     let newRootGroup1 = [...rootTree.group1, moveItem._id];
+  //     console.log('newRootGroup1', newRootGroup1);
+  //     await Tree.findOneAndUpdate({ _id: rootTree._id }, { group1: newRootGroup1 }).exec();
+  //     break;
+  //   case 2:
+  //     console.log('rootTree.group2', rootTree.group2);
+  //     let newRootGroup2 = [...rootTree.group2, moveItem._id];
+  //     console.log('newRootGroup2', newRootGroup2);
+  //     await Tree.findOneAndUpdate({ _id: rootTree._id }, { group2: newRootGroup2 }).exec();
+  //     break;
+  //   case 3:
+  //     console.log('rootTree.group3', rootTree.group3);
+  //     let newRootGroup3 = [...rootTree.group3, moveItem._id];
+  //     console.log('newRootGroup3', newRootGroup3);
+  //     await Tree.findOneAndUpdate({ _id: rootTree._id }, { group3: newRootGroup3 }).exec();
+  //     break;
+  // }
+
+  // if (moveItem.parentId !== rootItem._id) {
+
+  //   await User.findOneAndUpdate({ _id: moveItem._id }, { parentId: rootItem._id });
+  //   // Update amout / point Root
+  //   if (moveItem.buy_package === "2") {
+  //     await User.findOneAndUpdate({ _id: rootItem._id}, {
+  //       amount: rootItem.amount + moveItem.amount + 160,
+  //       point: rootItem.point + moveItem.point + 1
+  //     }).exec();
+  //   } else if (moveItem.buy_package === "1") {
+  //     await User.findOneAndUpdate({ _id: rootItem._id}, {
+  //       amount: rootItem.amount + moveItem.amount + 40,
+  //       point: rootItem.point + moveItem.point + 0.25
+  //     }).exec();
+  //   }
+  //   // Update amout / point Move Acc
+  //   if (moveItem.parentId !== process.env.INVITE_CODE) {
+  //     const moveFather = await User.findOne({ _id: moveItem.parentId }).exec();
+  //     if (moveItem.buy_package === "2") {
+  //       await User.findOneAndUpdate({ _id: moveItem.parentId}, {
+  //         amount: moveFather.amount - moveItem.amount - 160,
+  //         point: moveFather.point - moveItem.point - 1
+  //       }).exec();
+  //     } else if (moveItem.buy_package === "1") {
+  //       await User.findOneAndUpdate({ _id: moveItem.parentId}, {
+  //         amount: moveFather.amount - moveItem.amount - 40,
+  //         point: moveFather.point - moveItem.point - 0.25
+  //       }).exec();
+  //     }
+  //   }
+  // }
+
+  // // chay lai check level
+  // helperInsertCalLevel();
+
+  res.json({
+    status: 200,
+    errors: [],
+    message: "Chuyển cây thành công!"
   });
-  switch (group) {
-    case "1":
-      rootTree.group1.push(moveItem._id);
-      break;
-    case "2":
-      rootTree.group2.push(moveItem._id);
-      break;
-    case "3":
-      rootTree.group3.push(moveItem._id);
-      break;
-  }
-  await rootTree.save(function (err) {
-    if (err) {
-      console.log("fail to save rootTree!");
-    }
-  });
-  await CalcuAmoutPoint(rootItem._id);
-  await CalcuAmoutPoint(moveFatherItem._id);
+
+
 }
 
 const CalcuAmoutPoint = async (id) => {

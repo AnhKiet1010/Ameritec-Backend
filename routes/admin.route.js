@@ -18,7 +18,7 @@ const {
     helperInsertCalLevel,
     editUser,
     getReceipts,
-    checkLevel
+    checkLevel,
 } = require('../controllers/admin.controller');
 
 router.post('/checkLevel', checkLevel);
