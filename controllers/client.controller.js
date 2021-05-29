@@ -498,15 +498,13 @@ exports.profile = async (req, res) => {
     data: {
       user,
       result: user.buy_package === "2" ? [
-        { label: "Giới tính", value: user.gender === 2 ? "Nam" : user.gender === 3 ? "Nữ" : "N/A" },
-        { label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0] },
         { label: "Họ và tên", value: user.full_name },
+        { label: "Giới tính", value: user.gender === 2 ? "Nam" : user.gender === 3 ? "Nữ" : "N/A" },
+        { label: "Ngày tháng năm sinh", value: user.birthday ? new Date(user.birthday).toLocaleDateString("vi").split(",")[0] : "" },
         { label: "Email", value: user.email },
         { label: "Số điện thoại", value: user.phone },
-        { label: "Giới tính", value: user.gender === 2 ? "Nam" : user.gender === 3 ? "Nữ" : "N/A" },
-        { label: "Ngày tháng năm sinh", value: user.birthday ? new Date(user.birthday).toLocaleDateString("vi").split(",")[0]  : ""},
         { label: "Số chứng minh thư", value: user.id_code },
-        { label: "Ngày cấp", value: user.id_code ? new Date(user.id_time).toLocaleDateString("vi").split(",")[0] : ""},
+        { label: "Ngày cấp", value: user.id_code ? new Date(user.id_time).toLocaleDateString("vi").split(",")[0] : "" },
         { label: "Nơi cấp", value: PROVINCES.find(pro => pro.value === user.issued_by).label },
         { label: "Số tài khoản", value: user.bank_account },
         { label: "Ngân hàng", value: BANK.find(b => b.value === user.bank).label },
@@ -526,8 +524,6 @@ exports.profile = async (req, res) => {
 };
 
 exports.editProfile = async (req, res) => {
-  console.log(req.body);
-  const { values, id } = req.body;
   const {
     full_name,
     phone,
@@ -540,13 +536,13 @@ exports.editProfile = async (req, res) => {
     password,
     bank,
     bank_account,
-    bank_name
-  } = values;
+    bank_name,
+    id
+  } = req.body;
 
   const errors = [];
 
   const user = await User.findOne({ _id: id }).exec();
-  console.log('user', user);
 
   bcrypt.compare(password, user.password, async function (err, result) {
     // result == true
@@ -570,7 +566,7 @@ exports.editProfile = async (req, res) => {
 
       if (user.buy_package === "2") {
         const valid_id_code = await User.findOne({ $and: [{ id_code }, { _id: { $ne: id } }] }).exec();
-        const valid_tax_code = await User.findOne({ $and: [{ tax_code }, { _id: { $ne: id } }] }).exec();
+        const valid_tax_code = await User.findOne({ $and: [{ tax_code }, { _id: { $ne: id } }, { tax_code: { $ne: "" } }] }).exec();
 
         if (valid_id_code) {
           if (JSON.stringify(valid_id_code) !== JSON.stringify(user)) {
@@ -698,8 +694,38 @@ exports.editProfile = async (req, res) => {
             ).exec();
             change = true;
           }
+
+          const files = req.files;
+
+          if (files.CMND_Front && files.CMND_Back) {
+            var cmndMT = "";
+            var cmndMS = "";
+            const randomstring = randomString();
+
+            // name of front image
+            cmndMT = randomstring + '_front.' + files.CMND_Front[0].filename.split('.').pop();
+            fs.rename('./' + files.CMND_Front[0].path, './public/uploads/CMND/' + cmndMT, (err) => {
+              if (err) console.log(err);
+            });
+
+            // name of back image
+            cmndMS = randomstring + '_back.' + files.CMND_Back[0].filename.split('.').pop();
+            fs.rename('./' + files.CMND_Back[0].path, './public/uploads/CMND/' + cmndMS, (err) => {
+              if (err) console.log(err);
+            });
+            await User.findOneAndUpdate(
+              { _id: id },
+              {
+                cmndMT,
+                cmndMS
+              }
+            ).exec();
+            change = true;
+          }
+
+
           if (change) {
-            
+
             await User.findOneAndUpdate(
               { _id: id },
               {
