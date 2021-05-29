@@ -449,11 +449,11 @@ const checkLevel = async (id) => {
     return 0;
   }
   console.log(user.full_name);
+  let lv = parseInt(user.level);
   let flag = false;
-  let lv = parseInt(user.level) + 1;
   console.log(lv);
   switch (lv) {
-    case 1:
+    case 0:
       await User.countDocuments({ parentId: id }, async function (err, c) {
         if (c >= 9) {
           await User.findOneAndUpdate({ _id: user._id }, { level: 1 }).exec();
@@ -462,7 +462,7 @@ const checkLevel = async (id) => {
       });
 
       break;
-    case 2:
+    case 1:
       await User.countDocuments({ parentId: id, level: 1 }, async function (err, c) {
         if (c >= 9) {
           await User.findOneAndUpdate({ _id: user._id }, { level: 2 }).exec();
@@ -471,7 +471,7 @@ const checkLevel = async (id) => {
       });
 
       break;
-    case 3:
+    case 2:
       await User.countDocuments({ parentId: id, level: 2 }, async function (err, c) {
         if (c >= 9) {
           await User.findOneAndUpdate({ _id: user._id }, { level: 3 }).exec();
@@ -479,7 +479,7 @@ const checkLevel = async (id) => {
         }
       });
       break;
-    case 4:
+    case 3:
       await User.countDocuments({ parentId: _id, level: 3 }, async function (err, c) {
         if (c >= 9) {
           await User.findOneAndUpdate({ _id: user._id }, { level: 4 }).exec();
@@ -490,12 +490,17 @@ const checkLevel = async (id) => {
     default:
       break;
   }
-  if (flag === true) {
+  await User.countDocuments({ parentId: id }, async function (err, c) {
+    if (c < 9) {
+      await User.findOneAndUpdate({ _id: user._id }, { level: 0 }).exec();
+      flag = true;
+    }
+  });
+  if (flag) {
     await checkLevel(user._id);
     await checkLevel(user.parentId);
   }
-  // await checkLevel(user.parentId);
-  return;
+  return 0;
 }
 exports.checkLevel = async (req, res) => {
   const { id } = req.body;
@@ -1288,16 +1293,13 @@ exports.editTree = async (req, res) => {
           point: moveFather.point - moveItem.point - 0.25
         }).exec();
       }
+
+
+      await checkLevel(moveItem.parentId);
+
+      await checkLevel(rootItem._id);
     }
   }
-
-  // chay lai check level
-
-  res.json({
-    status: 200,
-    errors: [],
-    message: "Chuyển cây thành công!"
-  });
 }
 
 exports.getReceipts = async (req, res) => {
