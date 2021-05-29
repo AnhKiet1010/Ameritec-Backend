@@ -1294,14 +1294,13 @@ exports.editTree = async (req, res) => {
         }).exec();
       }
 
+
       await checkLevel(moveItem.parentId);
 
       await checkLevel(rootItem._id);
     }
   }
 }
-
-
 
 exports.getReceipts = async (req, res) => {
   const commissionSuccess = await Commission.find({ status: 'success' }).sort({ _id: -1 }).exec();
