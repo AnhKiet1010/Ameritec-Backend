@@ -437,80 +437,53 @@ const helperInsertCalLevel = async () => {
   };
 };
 
-exports.checkLevel = async (req, res,) => {
-  var list = await User.find({ id_ameritecjsc: { $ne: null } }).exec();
-
-  for (const element of list) {
-    await checkLevel(element._id);
-  }
-  res.json({
-    status: 200,
-    errors: ["hi"],
-  });
-}
-
 const checkLevel = async (id) => {
+
   if (id) {
     var user = await User.findOne({ _id: id }).exec();
   }
   else {
-    return;
+    return 0;
   }
   if (!user) {
-    return;
+    return 0;
   }
+  console.log(user.full_name);
   let flag = false;
   let lv = parseInt(user.level) + 1;
+  console.log(lv);
   switch (lv) {
     case 1:
-      await User.countDocuments({ parentId: id }, function (err, c) {
-        if (c > 9) {
-          user.level = 1;
+      await User.countDocuments({ parentId: id }, async function (err, c) {
+        if (c >= 9) {
+          await User.findOneAndUpdate({ _id: user._id }, { level: 1 }).exec();
           flag = true;
         }
       });
-      await user.save(function (err) {
-        if (err) {
-          console.log("fail to checkLevel user: " + id);
-        }
-      });
+
       break;
     case 2:
-      await User.countDocuments({ parentId: id, level: 1 }, function (err, c) {
-        if (c > 9) {
-          user.level = 2;
+      await User.countDocuments({ parentId: id, level: 1 }, async function (err, c) {
+        if (c >= 9) {
+          await User.findOneAndUpdate({ _id: user._id }, { level: 2 }).exec();
           flag = true;
         }
       });
-      await user.save(function (err) {
-        if (err) {
-          console.log("fail to checkLevel user: " + id);
-        }
-      });
+
       break;
     case 3:
-      await User.countDocuments({ parentId: id, level: 2 }, function (err, c) {
-        if (c > 9) {
-          user.level = 3;
+      await User.countDocuments({ parentId: id, level: 2 }, async function (err, c) {
+        if (c >= 9) {
+          await User.findOneAndUpdate({ _id: user._id }, { level: 3 }).exec();
           flag = true;
-        }
-      });
-      await user.save(function (err) {
-        if (err) {
-          console.log("fail to checkLevel user: " + id);
         }
       });
       break;
     case 4:
-      await User.countDocuments({ parentId: _id, level: 3 }, function (err, c) {
-        if (c > 9) {
-          user.level = 4;
+      await User.countDocuments({ parentId: _id, level: 3 }, async function (err, c) {
+        if (c >= 9) {
+          await User.findOneAndUpdate({ _id: user._id }, { level: 4 }).exec();
           flag = true;
-        }
-      });
-      await user.save(function (err) {
-        if (err) {
-          console.log("fail to checkLevel user: " + id);
         }
       });
       break;
@@ -518,12 +491,20 @@ const checkLevel = async (id) => {
       break;
   }
   if (flag === true) {
+    await checkLevel(user._id);
     await checkLevel(user.parentId);
   }
   // await checkLevel(user.parentId);
   return;
 }
-
+exports.checkLevel = async (req, res) => {
+  const { id } = req.body;
+  checkLevel(id);
+  res.json({
+    status: 200,
+    errors: ["Con cac"]
+  });
+}
 exports.policy = async (req, res) => {
 
   const listPolicy = await Policy.find({}).sort({ _id: -1 }).exec();
@@ -1573,115 +1554,114 @@ exports.editTree = async (req, res) => {
   // chua handle root la admin
   const { move_acc, root_acc, group } = req.body;
   console.log(req.body);
-  // const rootItem = await User.findOne({ email: root_acc }).exec();
+  const rootItem = await User.findOne({ email: root_acc }).exec();
 
-  // const moveItem = await User.findOne({ email: move_acc }).exec();
+  const moveItem = await User.findOne({ email: move_acc }).exec();
 
-  // if (!rootItem || !moveItem) {
-  //   return res.json({
-  //     status: 401,
-  //     message: "Có Email không hợp lệ",
-  //     errors: [
-  //       {
-  //         label: "move_acc",
-  //         err_message: "Email không hợp lệ",
-  //       },
-  //       {
-  //         label: "root_acc",
-  //         err_message: "Email không hợp lệ",
-  //       },
-  //     ],
-  //   });
-  // }
+  if (!rootItem || !moveItem) {
+    return res.json({
+      status: 401,
+      message: "Có Email không hợp lệ",
+      errors: [
+        {
+          label: "move_acc",
+          err_message: "Email không hợp lệ",
+        },
+        {
+          label: "root_acc",
+          err_message: "Email không hợp lệ",
+        },
+      ],
+    });
+  }
 
-  // const rootTree = await Tree.findOne({ parent: rootItem._id }).exec();
+  const rootTree = await Tree.findOne({ parent: rootItem._id }).exec();
 
-  // // tim cây của thằng cha thằng move
-  // if (moveItem.parentId !== process.env.INVITE_CODE) {
-  //   const moveFatherTree = await Tree.findOne({ parent: moveItem.parentId }).exec();
+  // tim cây của thằng cha thằng move
+  if (moveItem.parentId !== process.env.INVITE_CODE) {
+    const moveFatherTree = await Tree.findOne({ parent: moveItem.parentId }).exec();
 
-  //   var newGroup = [];
-  //   if (moveFatherTree.group1.includes(moveItem._id)) {
-  //     let index = moveFatherTree.group1.indexOf(moveItem._id);
-  //     console.log('index1', index);
-  //     if (index !== -1) {
-  //       newGroup = [...moveFatherTree.group1.slice(0, index), ...moveFatherTree.group1.slice(index + 1)];
-  //       await Tree.findOneAndUpdate({ _id: moveFatherTree._id }, { group1: newGroup }).exec();
-  //     }
-  //   }
-  //   if (moveFatherTree.group2.includes(moveItem._id)) {
-  //     let index = moveFatherTree.group2.indexOf(moveItem._id);
-  //     console.log('index2', index);
-  //     if (index !== -1) {
-  //       newGroup = [...moveFatherTree.group2.slice(0, index), ...moveFatherTree.group2.slice(index + 1)];
-  //       await Tree.findOneAndUpdate({ _id: moveFatherTree._id }, { group2: newGroup }).exec();
-  //     }
-  //   }
-  //   if (moveFatherTree.group3.includes(moveItem._id)) {
-  //     let index = moveFatherTree.group3.indexOf(moveItem._id);
-  //     console.log('index3', index);
-  //     if (index !== -1) {
-  //       newGroup = [...moveFatherTree.group3.slice(0, index), ...moveFatherTree.group3.slice(index + 1)];
-  //       await Tree.findOneAndUpdate({ _id: moveFatherTree._id }, { group3: newGroup }).exec();
-  //     }
-  //   }
-  // }
+    var newGroup = [];
+    if (moveFatherTree.group1.includes(moveItem._id)) {
+      let index = moveFatherTree.group1.indexOf(moveItem._id);
+      console.log('index1', index);
+      if (index !== -1) {
+        newGroup = [...moveFatherTree.group1.slice(0, index), ...moveFatherTree.group1.slice(index + 1)];
+        await Tree.findOneAndUpdate({ _id: moveFatherTree._id }, { group1: newGroup }).exec();
+      }
+    }
+    if (moveFatherTree.group2.includes(moveItem._id)) {
+      let index = moveFatherTree.group2.indexOf(moveItem._id);
+      console.log('index2', index);
+      if (index !== -1) {
+        newGroup = [...moveFatherTree.group2.slice(0, index), ...moveFatherTree.group2.slice(index + 1)];
+        await Tree.findOneAndUpdate({ _id: moveFatherTree._id }, { group2: newGroup }).exec();
+      }
+    }
+    if (moveFatherTree.group3.includes(moveItem._id)) {
+      let index = moveFatherTree.group3.indexOf(moveItem._id);
+      console.log('index3', index);
+      if (index !== -1) {
+        newGroup = [...moveFatherTree.group3.slice(0, index), ...moveFatherTree.group3.slice(index + 1)];
+        await Tree.findOneAndUpdate({ _id: moveFatherTree._id }, { group3: newGroup }).exec();
+      }
+    }
+  }
 
-  // switch (group) {
-  //   case 1:
-  //     console.log('rootTree.group1', rootTree.group1);
-  //     let newRootGroup1 = [...rootTree.group1, moveItem._id];
-  //     console.log('newRootGroup1', newRootGroup1);
-  //     await Tree.findOneAndUpdate({ _id: rootTree._id }, { group1: newRootGroup1 }).exec();
-  //     break;
-  //   case 2:
-  //     console.log('rootTree.group2', rootTree.group2);
-  //     let newRootGroup2 = [...rootTree.group2, moveItem._id];
-  //     console.log('newRootGroup2', newRootGroup2);
-  //     await Tree.findOneAndUpdate({ _id: rootTree._id }, { group2: newRootGroup2 }).exec();
-  //     break;
-  //   case 3:
-  //     console.log('rootTree.group3', rootTree.group3);
-  //     let newRootGroup3 = [...rootTree.group3, moveItem._id];
-  //     console.log('newRootGroup3', newRootGroup3);
-  //     await Tree.findOneAndUpdate({ _id: rootTree._id }, { group3: newRootGroup3 }).exec();
-  //     break;
-  // }
+  switch (group) {
+    case 1:
+      console.log('rootTree.group1', rootTree.group1);
+      let newRootGroup1 = [...rootTree.group1, moveItem._id];
+      console.log('newRootGroup1', newRootGroup1);
+      await Tree.findOneAndUpdate({ _id: rootTree._id }, { group1: newRootGroup1 }).exec();
+      break;
+    case 2:
+      console.log('rootTree.group2', rootTree.group2);
+      let newRootGroup2 = [...rootTree.group2, moveItem._id];
+      console.log('newRootGroup2', newRootGroup2);
+      await Tree.findOneAndUpdate({ _id: rootTree._id }, { group2: newRootGroup2 }).exec();
+      break;
+    case 3:
+      console.log('rootTree.group3', rootTree.group3);
+      let newRootGroup3 = [...rootTree.group3, moveItem._id];
+      console.log('newRootGroup3', newRootGroup3);
+      await Tree.findOneAndUpdate({ _id: rootTree._id }, { group3: newRootGroup3 }).exec();
+      break;
+  }
 
-  // if (moveItem.parentId !== rootItem._id) {
+  if (moveItem.parentId !== rootItem._id) {
 
-  //   await User.findOneAndUpdate({ _id: moveItem._id }, { parentId: rootItem._id });
-  //   // Update amout / point Root
-  //   if (moveItem.buy_package === "2") {
-  //     await User.findOneAndUpdate({ _id: rootItem._id}, {
-  //       amount: rootItem.amount + moveItem.amount + 160,
-  //       point: rootItem.point + moveItem.point + 1
-  //     }).exec();
-  //   } else if (moveItem.buy_package === "1") {
-  //     await User.findOneAndUpdate({ _id: rootItem._id}, {
-  //       amount: rootItem.amount + moveItem.amount + 40,
-  //       point: rootItem.point + moveItem.point + 0.25
-  //     }).exec();
-  //   }
-  //   // Update amout / point Move Acc
-  //   if (moveItem.parentId !== process.env.INVITE_CODE) {
-  //     const moveFather = await User.findOne({ _id: moveItem.parentId }).exec();
-  //     if (moveItem.buy_package === "2") {
-  //       await User.findOneAndUpdate({ _id: moveItem.parentId}, {
-  //         amount: moveFather.amount - moveItem.amount - 160,
-  //         point: moveFather.point - moveItem.point - 1
-  //       }).exec();
-  //     } else if (moveItem.buy_package === "1") {
-  //       await User.findOneAndUpdate({ _id: moveItem.parentId}, {
-  //         amount: moveFather.amount - moveItem.amount - 40,
-  //         point: moveFather.point - moveItem.point - 0.25
-  //       }).exec();
-  //     }
-  //   }
-  // }
+    await User.findOneAndUpdate({ _id: moveItem._id }, { parentId: rootItem._id });
+    // Update amout / point Root
+    if (moveItem.buy_package === "2") {
+      await User.findOneAndUpdate({ _id: rootItem._id }, {
+        amount: rootItem.amount + moveItem.amount + 160,
+        point: rootItem.point + moveItem.point + 1
+      }).exec();
+    } else if (moveItem.buy_package === "1") {
+      await User.findOneAndUpdate({ _id: rootItem._id }, {
+        amount: rootItem.amount + moveItem.amount + 40,
+        point: rootItem.point + moveItem.point + 0.25
+      }).exec();
+    }
+    // Update amout / point Move Acc
+    if (moveItem.parentId !== process.env.INVITE_CODE) {
+      const moveFather = await User.findOne({ _id: moveItem.parentId }).exec();
+      if (moveItem.buy_package === "2") {
+        await User.findOneAndUpdate({ _id: moveItem.parentId }, {
+          amount: moveFather.amount - moveItem.amount - 160,
+          point: moveFather.point - moveItem.point - 1
+        }).exec();
+      } else if (moveItem.buy_package === "1") {
+        await User.findOneAndUpdate({ _id: moveItem.parentId }, {
+          amount: moveFather.amount - moveItem.amount - 40,
+          point: moveFather.point - moveItem.point - 0.25
+        }).exec();
+      }
+    }
+  }
 
-  // // chay lai check level
-  // helperInsertCalLevel();
+  // chay lai check level
 
   res.json({
     status: 200,
