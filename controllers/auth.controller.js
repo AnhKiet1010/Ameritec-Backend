@@ -313,6 +313,7 @@ exports.registerController = async (req, res) => {
   var cmndMS = "";
 
   const user_repeat_email = await User.findOne({ email }).exec();
+  console.log('phone', req.body);
   const valid_phone = await User.findOne({ phone }).exec();
 
   await Transaction.deleteMany({ email, status: "pending" }).exec();
@@ -339,32 +340,32 @@ exports.registerController = async (req, res) => {
   } else {
     if (buy_package === "2") {
 
-      const files = req.files;
+      // const files = req.files;
 
-      if (files.CMND_Front && files.CMND_Back) {
-        const randomstring = randomString();
+      // if (files.CMND_Front && files.CMND_Back) {
+      //   const randomstring = randomString();
 
-        // name of front image
-        cmndMT = randomstring + '_front.' + files.CMND_Front[0].filename.split('.').pop();
-        fs.rename('./' + files.CMND_Front[0].path, './public/uploads/CMND/' + cmndMT, (err) => {
-          if (err) console.log(err);
-        });
+      //   // name of front image
+      //   cmndMT = randomstring + '_front.' + files.CMND_Front[0].filename.split('.').pop();
+      //   fs.rename('./' + files.CMND_Front[0].path, './public/uploads/CMND/' + cmndMT, (err) => {
+      //     if (err) console.log(err);
+      //   });
 
-        // name of back image
-        cmndMS = randomstring + '_back.' + files.CMND_Back[0].filename.split('.').pop();
-        fs.rename('./' + files.CMND_Back[0].path, './public/uploads/CMND/' + cmndMS, (err) => {
-          if (err) console.log(err);
-        });
-      } else {
-        errors.push({
-          label: "CMND_Front",
-          err_message: "Vui lòng tải lên mặt trước CMND",
-        },
-          {
-            label: "CMND_Back",
-            err_message: "Vui lòng tải lên mặt sau CMND",
-          });
-      }
+      //   // name of back image
+      //   cmndMS = randomstring + '_back.' + files.CMND_Back[0].filename.split('.').pop();
+      //   fs.rename('./' + files.CMND_Back[0].path, './public/uploads/CMND/' + cmndMS, (err) => {
+      //     if (err) console.log(err);
+      //   });
+      // } else {
+      //   errors.push({
+      //     label: "CMND_Front",
+      //     err_message: "Vui lòng tải lên mặt trước CMND",
+      //   },
+      //     {
+      //       label: "CMND_Back",
+      //       err_message: "Vui lòng tải lên mặt sau CMND",
+      //     });
+      // }
 
       if (id_code === "") {
         errors.push({
@@ -451,8 +452,8 @@ exports.registerController = async (req, res) => {
         groupNumber,
         buy_package,
         id_time,
-        cmndMT,
-        cmndMS
+        // cmndMT,
+        // cmndMS
       },
       process.env.JWT_ACCOUNT_ACTIVATION,
       { expiresIn: "15m" }
@@ -523,8 +524,8 @@ async function processDataActivation(data, token) {
     groupNumber,
     buy_package,
     id_time,
-    cmndMT,
-    cmndMS
+    // cmndMT,
+    // cmndMS
   } = data;
 
   const unSavedErr = [];
@@ -558,8 +559,8 @@ async function processDataActivation(data, token) {
         tax_code,
         birthday,
         gender,
-        cmndMT,
-        cmndMS,
+        // cmndMT,
+        // cmndMS,
         id_time,
         expired: false
       });

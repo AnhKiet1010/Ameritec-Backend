@@ -1179,374 +1179,122 @@ exports.createPolicy = async (req, res) => {
 
 }
 
-exports.changeTree = async (req, res) => {
-  const { values } = req.body;
-  const { acc1, acc2 } = values;
+//chuyển tree
+exports.editTree = async (req, res) => {
+  // chua handle root la admin
+  const { move_acc, root_acc, group } = req.body;
+  console.log(req.body);
+  const rootItem = await User.findOne({ email: root_acc }).exec();
 
-  const user1 = await User.findOne({
-    $or: [{ email: acc1 }, { phone: acc1 }],
-  }).exec();
+  const moveItem = await User.findOne({ email: move_acc }).exec();
 
-  const user2 = await User.findOne({
-    $or: [{ email: acc2 }, { phone: acc2 }],
-  }).exec();
-
-  if (!user1 || !user2) {
+  if (!rootItem || !moveItem) {
     return res.json({
-      success: false,
+      status: 401,
+      message: "Có Email không hợp lệ",
       errors: [
         {
-          label: "acc1",
-          err_message: "Email hoặc SĐT không hợp lệ",
+          label: "move_acc",
+          err_message: "Email không hợp lệ",
         },
         {
-          label: "acc2",
-          err_message: "Email hoặc SĐT không hợp lệ",
+          label: "root_acc",
+          err_message: "Email không hợp lệ",
         },
       ],
     });
   }
-  const infoUser1 = {
-    amount: user1.amount,
-    level: user1.level,
-    point: user1.point,
-    groupNumber: user1.groupNumber,
-    parentId: user1.parentId,
-  };
-  const infoUser2 = {
-    amount: user2.amount,
-    level: user2.level,
-    point: user2.point,
-    groupNumber: user2.groupNumber,
-    parentId: user2.parentId,
-  };
 
-  await User.findOneAndUpdate({ _id: user1._id }, { ...infoUser2 }).exec();
-  await User.findOneAndUpdate({ _id: user2._id }, { ...infoUser1 }).exec();
-
-  // update parent in group
-  if (user1.parentId !== "" && user2.parentId !== "") {
-    if (
-      user1.parentId === user2.parentId &&
-      user1.groupNumber === user2.groupNumber
-    ) {
-      const tree = await Tree.findOne({ parent: user1.parentId }).exec();
-      const arrGroup1 = tree.group1;
-      const arrGroup2 = tree.group2;
-      const arrGroup3 = tree.group3;
-
-      if (user1.groupNumber === "1") {
-        var i1 = arrGroup1.indexOf(user1._id);
-        var i2 = arrGroup1.indexOf(user2._id);
-        arrGroup1[i1] = user2._id;
-        arrGroup1[i2] = user1._id;
-        await Tree.findOneAndUpdate(
-          { _id: tree._id },
-          { group1: arrGroup1 }
-        ).exec();
-      }
-
-      if (user1.groupNumber === "2") {
-        var i1 = arrGroup2.indexOf(user1._id);
-        var i2 = arrGroup2.indexOf(user2._id);
-        arrGroup2[i1] = user2._id;
-        arrGroup2[i2] = user1._id;
-        await Tree.findOneAndUpdate(
-          { _id: tree._id },
-          { group2: arrGroup2 }
-        ).exec();
-      }
-
-      if (user1.groupNumber === "3") {
-        var i1 = arrGroup3.indexOf(user1._id);
-        var i2 = arrGroup3.indexOf(user2._id);
-        arrGroup3[i1] = user2._id;
-        arrGroup3[i2] = user1._id;
-        await Tree.findOneAndUpdate(
-          { _id: tree._id },
-          { group3: arrGroup3 }
-        ).exec();
-      }
-    } else {
-      const tree = await Tree.findOne({ parent: user1.parentId }).exec();
-      if (tree) {
-        const arrGroup11 = tree.group1;
-        const arrGroup12 = tree.group2;
-        const arrGroup13 = tree.group3;
-
-        if (user1.groupNumber === "1") {
-          var i = arrGroup11.indexOf(user1._id);
-          if (i > -1) {
-            arrGroup11[i] = user2._id;
-          }
-          await Tree.findOneAndUpdate(
-            { _id: tree._id },
-            { group1: arrGroup11 }
-          ).exec();
-        }
-
-        if (user1.groupNumber === "2") {
-          var i = arrGroup12.indexOf(user1._id);
-          if (i > -1) {
-            arrGroup12[i] = user2._id;
-          }
-          await Tree.findOneAndUpdate(
-            { _id: tree._id },
-            { group2: arrGroup12 }
-          ).exec();
-        }
-
-        if (user1.groupNumber === "3") {
-          var i = arrGroup13.indexOf(user1._id);
-          if (i > -1) {
-            arrGroup13[i] = user2._id;
-          }
-          await Tree.findOneAndUpdate(
-            { _id: tree._id },
-            { group3: arrGroup13 }
-          ).exec();
-        }
-      } else {
-        console.log("fail to find user 1 parent");
-        return;
-      }
-
-      const tree2 = await Tree.findOne({ parent: user2.parentId }).exec();
-      if (tree2) {
-        const arrGroup21 = tree2.group1;
-        const arrGroup22 = tree2.group2;
-        const arrGroup23 = tree2.group3;
-
-        if (user2.groupNumber === "1") {
-          var i = arrGroup21.indexOf(user2._id);
-          if (i > -1) {
-            arrGroup21[i] = user1._id;
-          }
-          await Tree.findOneAndUpdate(
-            { _id: tree2._id },
-            { group1: arrGroup21 }
-          ).exec();
-        }
-
-        if (user2.groupNumber === "2") {
-          var i = arrGroup22.indexOf(user2._id);
-          if (i > -1) {
-            arrGroup22[i] = user1._id;
-          }
-          await Tree.findOneAndUpdate(
-            { _id: tree2._id },
-            { group2: arrGroup22 }
-          ).exec();
-        }
-
-        if (user2.groupNumber === "3") {
-          var i = arrGroup23.indexOf(user2._id);
-          if (i > -1) {
-            arrGroup23[i] = user1._id;
-          }
-          await Tree.findOneAndUpdate(
-            { _id: tree2._id },
-            { group3: arrGroup23 }
-          ).exec();
-        }
-      } else {
-        console.log("fail to find user 2 parent");
-        return;
-      }
-    }
-  } else if (user1.parentId === "" && user2.parentId !== "") {
-    const tree2 = await Tree.findOne({ parent: user2.parentId }).exec();
-    if (tree2) {
-      const arrGroup21 = tree2.group1;
-      const arrGroup22 = tree2.group2;
-      const arrGroup23 = tree2.group3;
-
-      if (user2.groupNumber === "1") {
-        var i = arrGroup21.indexOf(user2._id);
-        if (i > -1) {
-          arrGroup21[i] = user1._id;
-        }
-        await Tree.findOneAndUpdate(
-          { _id: tree2._id },
-          { group1: arrGroup21 }
-        ).exec();
-      }
-
-      if (user2.groupNumber === "2") {
-        var i = arrGroup22.indexOf(user2._id);
-        if (i > -1) {
-          arrGroup22[i] = user1._id;
-        }
-        await Tree.findOneAndUpdate(
-          { _id: tree2._id },
-          { group2: arrGroup22 }
-        ).exec();
-      }
-
-      if (user2.groupNumber === "3") {
-        var i = arrGroup23.indexOf(user2._id);
-        if (i > -1) {
-          arrGroup23[i] = user1._id;
-        }
-        await Tree.findOneAndUpdate(
-          { _id: tree2._id },
-          { group3: arrGroup23 }
-        ).exec();
-      }
-    } else {
-      console.log("fail to find user 2 parent");
-      return;
-    }
-  } else if (user1.parentId !== "" && user2.parentId === "") {
-    const tree = await Tree.findOne({ parent: user1.parentId }).exec();
-    if (tree) {
-      const arrGroup11 = tree.group1;
-      const arrGroup12 = tree.group2;
-      const arrGroup13 = tree.group3;
-
-      if (user1.groupNumber === "1") {
-        var i = arrGroup11.indexOf(user1._id);
-        if (i > -1) {
-          arrGroup11[i] = user2._id;
-        }
-        await Tree.findOneAndUpdate(
-          { _id: tree._id },
-          { group1: arrGroup11 }
-        ).exec();
-      }
-
-      if (user1.groupNumber === "2") {
-        var i = arrGroup12.indexOf(user1._id);
-        if (i > -1) {
-          arrGroup12[i] = user2._id;
-        }
-        await Tree.findOneAndUpdate(
-          { _id: tree._id },
-          { group2: arrGroup12 }
-        ).exec();
-      }
-
-      if (user1.groupNumber === "3") {
-        var i = arrGroup13.indexOf(user1._id);
-        if (i > -1) {
-          arrGroup13[i] = user2._id;
-        }
-        await Tree.findOneAndUpdate(
-          { _id: tree._id },
-          { group3: arrGroup13 }
-        ).exec();
-      }
-    } else {
-      console.log("fail to find user 1 parent");
-      return;
-    }
-  }
-
-  // update tree1 to parentId2
-  const replacedTree = await Tree.findOneAndUpdate(
-    { parent: user1._id },
-    { parent: user2._id, buy_package: user2.buy_package }
-  ).exec();
-
-  // update tree1 to parentId2
-  const listTreeParent2 = await Tree.find({
-    $and: [{ _id: { $ne: replacedTree._id } }, { parent: user2._id }],
-  }).exec();
-  await Tree.findOneAndUpdate(
-    { _id: listTreeParent2[0]._id },
-    { parent: user1._id, buy_package: user2.buy_package }
-  );
-
-  return res.json({
-    success: true,
-    message: "🎉 hoán đổi thành công",
-  });
-};
-
-//đổi vị trí 2 tml
-exports.changeTree2 = async (req, res) => {
-  const { move_acc, root_acc } = req.body;
-  const moveItem = await User.findOne({
-    $or: [{ email: move_acc }, { phone: move_acc }],
-  })
-    .exec();
-  const rootItem = await User.findOne({ $or: [{ email: root_acc }, { phone: root_acc }], })
-    .exec();
-  //xu ly cay cua goc va chon
-  const moveTree = await Tree.findOne({ parent: moveItem._id }).exec();
   const rootTree = await Tree.findOne({ parent: rootItem._id }).exec();
-  moveTree.parent = rootItem._id;
-  rootTree.parent = moveItem._id;
-  await moveTree.save(function (err) {
-    if (err) {
-      console.log("fail to save moveTree!");
-    }
-  });
-  await rootTree.save(function (err) {
-    if (err) {
-      console.log("fail to save rootTree!");
-    }
-  });
 
-  const moveTreeInAr = await Tree.find({ $or: [{ group1: moveItem._id }, { group2: moveItem._id }, { group3: moveItem._id }] }).exec();
-  const rootTreeInAr = await Tree.find({ $or: [{ group1: rootItem._id }, { group2: rootItem._id }, { group3: rootItem._id }] }).exec();
+  // tim cây của thằng cha thằng move
+  if (moveItem.parentId !== process.env.INVITE_CODE) {
+    const moveFatherTree = await Tree.findOne({ parent: moveItem.parentId }).exec();
 
-  const moveTreeIn = moveTreeInAr[0];
-  const rootTreeIn = rootTreeInAr[0];
-  //chọn sang góc
-  if (moveTreeIn.group1.includes(moveItem._id)) {
-    rootTreeIn.group1.push(rootItem._id);
-    moveTreeIn.group1.splice(moveTreeIn.group1.indexOf(moveItem._id), 1);
-  }
-  if (moveTreeIn.group2.includes(moveItem._id)) {
-    rootTreeIn.group2.push(rootItem._id);
-    moveTreeIn.group2.splice(moveTreeIn.group2.indexOf(moveItem._id), 1);
-  }
-  if (moveTreeIn.group3.includes(moveItem._id)) {
-    rootTreeIn.group3.push(rootItem._id);
-    moveTreeIn.group3.splice(moveTreeIn.group3.indexOf(moveItem._id), 1);
-  }
-  //góc sang chọn
-  if (rootTreeIn.group1.includes(rootItem._id)) {
-    moveTreeIn.group1.push(moveItem._id);
-    rootTreeIn.group1.splice(rootTreeIn.group1.indexOf(rootItem._id), 1);
-  }
-  if (rootTreeIn.group2.includes(rootItem._id)) {
-    moveTreeIn.group2.push(moveItem._id);
-    rootTreeIn.group2.splice(rootTreeIn.group2.indexOf(rootItem._id), 1);
-  }
-  if (rootTreeIn.group3.includes(rootItem._id)) {
-    moveTreeIn.group3.push(moveItem._id);
-    rootTreeIn.group3.splice(rootTreeIn.group3.indexOf(rootItem._id), 1);
-  }
-  await moveTreeIn.save(function (err) {
-    if (err) {
-      console.log("fail to save moveTreeIn!");
-    }
-  });
-  await rootTreeIn.save(function (err) {
-    if (err) {
-      console.log("fail to save rootTreeIn!");
-    }
-  });
-  const listConMove = User.find({ parentId: moveItem._id }).exec();
-  const listConRoot = User.find({ parentId: rootItem._id }).exec();
-  for (const element of listConMove) {
-    element.parentId = rootItem._id;
-    await element.save(function (err) {
-      if (err) {
-        console.log("fail to save listConMove!");
+    var newGroup = [];
+    if (moveFatherTree.group1.includes(moveItem._id)) {
+      let index = moveFatherTree.group1.indexOf(moveItem._id);
+      console.log('index1', index);
+      if (index !== -1) {
+        newGroup = [...moveFatherTree.group1.slice(0, index), ...moveFatherTree.group1.slice(index + 1)];
+        await Tree.findOneAndUpdate({ _id: moveFatherTree._id }, { group1: newGroup }).exec();
       }
-    });
-  }
-  for (const element of listConRoot) {
-    element.parentId = moveItem._id;
-    await element.save(function (err) {
-      if (err) {
-        console.log("fail to save listConRoot!");
+    }
+    if (moveFatherTree.group2.includes(moveItem._id)) {
+      let index = moveFatherTree.group2.indexOf(moveItem._id);
+      console.log('index2', index);
+      if (index !== -1) {
+        newGroup = [...moveFatherTree.group2.slice(0, index), ...moveFatherTree.group2.slice(index + 1)];
+        await Tree.findOneAndUpdate({ _id: moveFatherTree._id }, { group2: newGroup }).exec();
       }
-    });
+    }
+    if (moveFatherTree.group3.includes(moveItem._id)) {
+      let index = moveFatherTree.group3.indexOf(moveItem._id);
+      console.log('index3', index);
+      if (index !== -1) {
+        newGroup = [...moveFatherTree.group3.slice(0, index), ...moveFatherTree.group3.slice(index + 1)];
+        await Tree.findOneAndUpdate({ _id: moveFatherTree._id }, { group3: newGroup }).exec();
+      }
+    }
   }
+
+  switch (group) {
+    case 1:
+      console.log('rootTree.group1', rootTree.group1);
+      let newRootGroup1 = [...rootTree.group1, moveItem._id];
+      console.log('newRootGroup1', newRootGroup1);
+      await Tree.findOneAndUpdate({ _id: rootTree._id }, { group1: newRootGroup1 }).exec();
+      break;
+    case 2:
+      console.log('rootTree.group2', rootTree.group2);
+      let newRootGroup2 = [...rootTree.group2, moveItem._id];
+      console.log('newRootGroup2', newRootGroup2);
+      await Tree.findOneAndUpdate({ _id: rootTree._id }, { group2: newRootGroup2 }).exec();
+      break;
+    case 3:
+      console.log('rootTree.group3', rootTree.group3);
+      let newRootGroup3 = [...rootTree.group3, moveItem._id];
+      console.log('newRootGroup3', newRootGroup3);
+      await Tree.findOneAndUpdate({ _id: rootTree._id }, { group3: newRootGroup3 }).exec();
+      break;
+  }
+
+  if (moveItem.parentId !== rootItem._id) {
+
+    await User.findOneAndUpdate({ _id: moveItem._id }, { parentId: rootItem._id });
+    // Update amout / point Root
+    if (moveItem.buy_package === "2") {
+      await User.findOneAndUpdate({ _id: rootItem._id }, {
+        amount: rootItem.amount + moveItem.amount + 160,
+        point: rootItem.point + moveItem.point + 1
+      }).exec();
+    } else if (moveItem.buy_package === "1") {
+      await User.findOneAndUpdate({ _id: rootItem._id }, {
+        amount: rootItem.amount + moveItem.amount + 40,
+        point: rootItem.point + moveItem.point + 0.25
+      }).exec();
+    }
+    // Update amout / point Move Acc
+    if (moveItem.parentId !== process.env.INVITE_CODE) {
+      const moveFather = await User.findOne({ _id: moveItem.parentId }).exec();
+      if (moveItem.buy_package === "2") {
+        await User.findOneAndUpdate({ _id: moveItem.parentId }, {
+          amount: moveFather.amount - moveItem.amount - 160,
+          point: moveFather.point - moveItem.point - 1
+        }).exec();
+      } else if (moveItem.buy_package === "1") {
+        await User.findOneAndUpdate({ _id: moveItem.parentId }, {
+          amount: moveFather.amount - moveItem.amount - 40,
+          point: moveFather.point - moveItem.point - 0.25
+        }).exec();
+      }
+
+      await checkLevel(moveItem.parentId);
+
+      await checkLevel(rootItem._id);
+    }
+  }
+
 }
 
 //chuyển tree
@@ -1668,48 +1416,7 @@ exports.editTree = async (req, res) => {
     errors: [],
     message: "Chuyển cây thành công!"
   });
-
-
 }
-
-const CalcuAmoutPoint = async (id) => {
-  const user = await User.findOne({
-    _id: id
-  }).exec();
-  const listcon = await User.find({
-    parentId: user._id
-  }).exec();
-  let amount = 0;
-  let point = 0;
-  for (const element of listcon) {
-    await CalcuAmoutPoint(element._id);
-  }
-  await User.countDocuments({ parentId: user._id, buy_package: "2" }, function (err, c) {
-    amount += c * 160;
-    point += c * 1;
-  });
-  await User.countDocuments({ parentId: user._id, buy_package: "1" }, function (err, c) {
-    amount += c * 40;
-    point += c * 0.25;
-  });
-  user.amount = amount;
-  user.point = point;
-  await checkLevel(id);
-  await user.save(function (err) {
-    if (err) {
-      console.log("fail to save user!");
-    }
-  });
-}
-const removeFromArr = (arr, id) => {
-
-  const index = arr.indexOf(id);
-  if (index > -1) {
-    arr.splice(index, 1);
-    return arr;
-  }
-  return;
-};
 
 exports.getReceipts = async (req, res) => {
   const commissionSuccess = await Commission.find({ status: 'success' }).sort({ _id: -1 }).exec();
@@ -1721,78 +1428,3 @@ exports.getReceipts = async (req, res) => {
     data: { commissionSuccess, commissionPending }
   });
 }
-
-const updateRootTreeGroup = async (group, rootItem, moveItem, res) => {
-  const treeOfRoot = await Tree.findOne({ parent: rootItem._id }).exec();
-
-  const treeOfRootGroup1 = treeOfRoot.group1;
-  const treeOfRootGroup2 = treeOfRoot.group2;
-  const treeOfRootGroup3 = treeOfRoot.group3;
-
-  if (group === "1") {
-    if (treeOfRootGroup1.find((id) => id === JSON.stringify(moveItem._id))) {
-      return res.json({
-        success: false,
-        errors: [
-          {
-            label: "root_acc",
-            err_message: "ID đã tồn tại trong nhóm này.Kiểm tra lại",
-          },
-        ],
-      });
-    } else {
-      await Tree.findOneAndUpdate(
-        { parent: rootItem._id },
-        { group1: [...treeOfRootGroup1, moveItem._id] }
-      ).exec();
-    }
-  } else if (group === "2") {
-    if (treeOfRootGroup2.find((id) => id === JSON.stringify(moveItem._id))) {
-      return res.json({
-        success: false,
-        errors: [
-          {
-            label: "root_acc",
-            err_message: "ID đã tồn tại trong nhóm này.Kiểm tra lại",
-          },
-        ],
-      });
-    } else {
-      await Tree.findOneAndUpdate(
-        { parent: rootItem._id },
-        { group2: [...treeOfRootGroup2, moveItem._id] }
-      ).exec();
-    }
-  } else if (group === "3") {
-    if (treeOfRootGroup3.find((id) => id === JSON.stringify(moveItem._id))) {
-      return res.json({
-        success: false,
-        errors: [
-          {
-            label: "root_acc",
-            err_message: "ID đã tồn tại trong nhóm này.Kiểm tra lại",
-          },
-        ],
-      });
-    } else {
-      await Tree.findOneAndUpdate(
-        { parent: rootItem._id },
-        { group3: [...treeOfRootGroup3, moveItem._id] }
-      ).exec();
-    }
-  } else {
-    return res.json({
-      success: false,
-      errors: [
-        {
-          label: "root_acc",
-          err_message: "Nhóm chuyển đến không hợp lệ.Kiểm tra lại",
-        },
-      ],
-    });
-  }
-  return res.json({
-    success: true,
-    message: "🎉 Chuyển cây thành công!",
-  });
-};
