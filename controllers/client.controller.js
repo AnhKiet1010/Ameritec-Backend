@@ -76,6 +76,10 @@ exports.dashboard = async (req, res) => {
     0,
     countLevel
   );
+
+  console.log("totalGroup1", totalChildMemberGroup1);
+  console.log("totalGroup2", totalChildMemberGroup2);
+  console.log("totalGroup3", totalChildMemberGroup3);
   res.json({
     status: 200,
     data: {
@@ -507,6 +511,7 @@ exports.profile = async (req, res) => {
         { label: "Ngày cấp", value: user.id_code ? new Date(user.id_time).toLocaleDateString("vi").split(",")[0] : "" },
         { label: "Nơi cấp", value: PROVINCES.find(pro => pro.value === user.issued_by).label },
         { label: "Số tài khoản", value: user.bank_account },
+        { label: "Mã số Thuế", value: user.tax_code ? user.tax_code : "" },
         { label: "Ngân hàng", value: BANK.find(b => b.value === user.bank).label },
         { label: "Tên tài khoản", value: user.bank_name },
         { label: "cmndMT", value: user.cmndMT },
@@ -565,7 +570,7 @@ exports.editProfile = async (req, res) => {
       }
 
       if (user.buy_package === "2") {
-        const valid_id_code = await User.findOne({ $and: [{ id_code }, { _id: { $ne: id } }] }).exec();
+        const valid_id_code = await User.findOne({ $and: [{ id_code }, { _id: { $ne: id } }, { id_code: { $ne: "" } }] }).exec();
         const valid_tax_code = await User.findOne({ $and: [{ tax_code }, { _id: { $ne: id } }, { tax_code: { $ne: "" } }] }).exec();
 
         if (valid_id_code) {

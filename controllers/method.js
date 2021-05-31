@@ -85,8 +85,6 @@ exports.countTotalChildMemberForLevel = async (
         } else {
           return count;
         }
-      } else {
-        continue;
       }
     }
   }

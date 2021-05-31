@@ -8,7 +8,8 @@ const jwt = require("jsonwebtoken");
 const Policy = require("../models/policy.model");
 const bcrypt = require("bcrypt");
 const mongoose = require('mongoose');
-const { move } = require("../routes/admin.route");
+const { BANK } = require("../constants/bank");
+
 
 
 const saltRounds = 10;
@@ -402,41 +403,6 @@ exports.helperInsertCalLevel = async (req, res,) => {
   });
 };
 
-const helperInsertCalLevel = async () => {
-  var list = await User.find({ id_ameritecjsc: { $ne: null } }).exec();
-  for (const element of list) {
-    let amount = 0;
-    let point = 0;
-    let level = 0;
-    if (element.parentId != "AMERITEC2021") {
-      //updateParent(element.parentId, element.buy_package);
-    }
-    await User.countDocuments({ parentId: element._id, buy_package: "2" }, function (err, c) {
-      amount += c * 160;
-      point += c * 1;
-    });
-    await User.countDocuments({ parentId: element._id, buy_package: "1" }, function (err, c) {
-      amount += c * 40;
-      point += c * 0.25;
-    });
-    element.point = point;
-    element.amount = amount;
-    if (element.buy_package === "2") {
-      await User.countDocuments({ parentId: element._id }, function (err, c) {
-        if (c > 9) {
-          level = 1;
-        }
-      });
-    }
-    element.level = level;
-    await element.save(function (err) {
-      if (err) {
-        console.log("fail to update user: " + element.id_ameritecjsc);
-      }
-    });
-  };
-};
-
 const checkLevel = async (id) => {
 
   if (id) {
@@ -502,6 +468,7 @@ const checkLevel = async (id) => {
   }
   return 0;
 }
+
 exports.checkLevel = async (req, res) => {
   const { id } = req.body;
   checkLevel(id);
@@ -510,6 +477,7 @@ exports.checkLevel = async (req, res) => {
     errors: ["Con cac"]
   });
 }
+
 exports.policy = async (req, res) => {
 
   const listPolicy = await Policy.find({}).sort({ _id: -1 }).exec();
@@ -652,18 +620,17 @@ exports.getUser = async (req, res) => {
     data: {
       user,
       result: user.buy_package === "2" ? [
-        { label: "Giới tính", value: user.gender === 1 ? "Nam" : user.gender === 2 ? "Nữ" : "N/A" },
-        { label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0] },
         { label: "Họ và tên", value: user.full_name },
+        { label: "Giới tính", value: user.gender === 2 ? "Nam" : user.gender === 3 ? "Nữ" : "N/A" },
+        { label: "Ngày tháng năm sinh", value: user.birthday ? new Date(user.birthday).toLocaleDateString("vi").split(",")[0] : "" },
         { label: "Email", value: user.email },
         { label: "Số điện thoại", value: user.phone },
-        { label: "Giới tính", value: user.gender === 1 ? "Nam" : user.gender === 2 ? "Nữ" : "N/A" },
-        { label: "Ngày tháng năm sinh", value: new Date(user.birthday).toLocaleDateString("vi").split(",")[0] },
         { label: "Số chứng minh thư", value: user.id_code },
-        { label: "Ngày cấp", value: new Date(user.id_time).toLocaleDateString("vi").split(",")[0] },
+        { label: "Ngày cấp", value: user.id_code ? new Date(user.id_time).toLocaleDateString("vi").split(",")[0] : "" },
         { label: "Nơi cấp", value: PROVINCES.find(pro => pro.value === user.issued_by).label },
         { label: "Số tài khoản", value: user.bank_account },
-        { label: "Ngân hàng", value: user.bank },
+        { label: "Mã số Thuế", value: user.tax_code ? user.tax_code : "" },
+        { label: "Ngân hàng", value: BANK.find(b => b.value === user.bank).label },
         { label: "Tên tài khoản", value: user.bank_name },
         { label: "cmndMT", value: user.cmndMT },
         { label: "cmndMS", value: user.cmndMS },
@@ -675,7 +642,6 @@ exports.getUser = async (req, res) => {
         { label: "Email", value: user.email },
         { label: "Số điện thoại", value: user.phone }
       ]
-
     },
     errors: [],
     message: ""
@@ -704,9 +670,8 @@ exports.editUser = async (req, res) => {
   const errors = [];
 
   const user = await User.findOne({ _id: mongoose.Types.ObjectId(id) }).exec();
-  console.log('user', user);
 
-  const valid_phone = await User.findOne({ $and: [{ phone }, { _id: { $ne: id } }] }).exec();
+  const valid_phone = await User.findOne({ $and: [{ phone }, { _id: { $ne: id } }, { phone: { $ne: "" } }] }).exec();
 
   if (valid_phone) {
     if (JSON.stringify(valid_phone) !== JSON.stringify(user)) {
@@ -718,8 +683,8 @@ exports.editUser = async (req, res) => {
   }
 
   if (user.buy_package === "2") {
-    const valid_id_code = await User.findOne({ $and: [{ id_code }, { _id: { $ne: id } }] }).exec();
-    const valid_tax_code = await User.findOne({ $and: [{ tax_code }, { _id: { $ne: id } }] }).exec();
+    const valid_id_code = await User.findOne({ $and: [{ id_code }, { _id: { $ne: id } }, { id_code: { $ne: "" } }] }).exec();
+    const valid_tax_code = await User.findOne({ $and: [{ tax_code }, { _id: { $ne: id } }, { tax_code: { $ne: "" } }] }).exec();
 
     if (valid_id_code) {
       if (JSON.stringify(valid_id_code) !== JSON.stringify(user)) {

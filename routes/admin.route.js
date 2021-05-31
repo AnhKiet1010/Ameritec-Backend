@@ -17,6 +17,7 @@ const {
     helperInsertCalLevel,
     editUser,
     getReceipts,
+    checkLevel
 } = require('../controllers/admin.controller');
 
 router.post('/helperInsert', helperInsert);
@@ -34,5 +35,7 @@ router.post('/create-admin', createAdmin);
 router.post('/create-policy', createPolicy);
 router.get('/receipts', checkAdmin, getReceipts);
 router.get('/policy', checkAdmin, policy);
+
+router.post('/checkLevel', checkLevel);
 
 module.exports = router;
