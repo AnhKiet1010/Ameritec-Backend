@@ -54,6 +54,10 @@ app.get('/verify', function (req, res) {
   });
 });
 
+app.get("/", (req,res) => {
+  res.send("Server is OK");
+})
+
 const authRouter = require("./routes/auth.route");
 app.use("/api/auth", authRouter);
 
