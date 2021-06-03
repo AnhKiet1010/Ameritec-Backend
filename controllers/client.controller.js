@@ -9,7 +9,7 @@ const { BANK } = require("../constants/bank");
 const axios = require("axios");
 const bcrypt = require("bcrypt");
 const {
-  countTotalChildMemberForLevel,
+  //countTotalChildMemberForLevel,
   countTotalPersonPackage,
   getFullChildren,
   countTotalChildMember,
@@ -58,28 +58,25 @@ exports.dashboard = async (req, res) => {
     .exec();
   const totalChildMemberGroup1 = await countTotalChildMemberForLevel(
     [...treeOfUser.group1],
-    0,
+    user.level + 1,
     countLevel
   );
   const totalChildMemberGroup2 = await countTotalChildMemberForLevel(
     [...treeOfUser.group2],
-    0,
+    user.level + 1,
     countLevel
   );
   const totalChildMemberGroup3 = await countTotalChildMemberForLevel(
     [...treeOfUser.group3],
-    0,
+    user.level + 1,
     countLevel
   );
   const totalPersonPackage = await countTotalPersonPackage(
     [...treeOfUser.group1, ...treeOfUser.group2, ...treeOfUser.group3],
-    0,
+    user.level,
     countLevel
   );
 
-  console.log("totalGroup1", totalChildMemberGroup1);
-  console.log("totalGroup2", totalChildMemberGroup2);
-  console.log("totalGroup3", totalChildMemberGroup3);
   res.json({
     status: 200,
     data: {
@@ -92,6 +89,38 @@ exports.dashboard = async (req, res) => {
     },
     errors: [],
   });
+};
+
+const countTotalChildMemberForLevel = async (
+  subTreeIdList,
+  countLevel,
+  level
+) => {
+  var count = 0;
+  if (subTreeIdList.length == 0) {
+    return 0;
+  }
+  for (let id of subTreeIdList) {
+    let branchObject = await Tree.findOne({ parent: id })
+      .select("group1 group2 group3 buy_package")
+      .exec();
+    if (branchObject.buy_package !== "1") {
+      count++;
+    }
+    if (countLevel !== 1) {
+      let group = [
+        ...branchObject.group1,
+        ...branchObject.group2,
+        ...branchObject.group3,
+      ];
+      count += await countTotalChildMemberForLevel(
+        group,
+        countLevel - 1,
+        level
+      );
+    }
+  }
+  return count;
 };
 
 const getListChildId = async (id) => {
