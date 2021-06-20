@@ -65,16 +65,16 @@ const treeRouter = require("./routes/tree.route");
 app.use("/tree", treeRouter);
 
 const transRouter = require("./routes/trans.route");
-app.use("/trans", transRouter);
+app.use("/api/trans", transRouter);
 
 const adminRouter = require("./routes/admin.route");
-app.use("/admin", adminRouter);
+app.use("/api/admin", adminRouter);
 
 const clientRouter = require("./routes/client.route");
-app.use("/client", clientRouter);
+app.use("/api/client", clientRouter);
 
 const paymentRouter = require("./routes/payment.route");
-app.use("/payment", paymentRouter);
+app.use("/api/payment", paymentRouter);
 
 // Connect to database
 connectDB();

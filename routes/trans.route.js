@@ -6,6 +6,6 @@ const { activeTrans } = require('../controllers/trans.controller');
 
 
 // tree system
-router.get('/active/:id',checkAdmin, activeTrans);
+router.get('/active/:id', activeTrans);
 
 module.exports = router;
